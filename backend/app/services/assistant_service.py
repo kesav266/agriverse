@@ -15,6 +15,7 @@ from app.models.domain import (
     ProfileDB,
 )
 from app.models.schemas import AssistantQueryRequest, AssistantQueryResponse
+from app.services.agri_knowledge import get_expert_agricultural_advisory
 
 
 SYSTEM_INSTRUCTION = """
@@ -89,6 +90,7 @@ class AssistantService:
             .limit(5)
             .all()
         )
+        crop_context = None
         for farm in farms:
             prompt_lines.append(
                 "Farmer-reported farm context: "
@@ -103,6 +105,8 @@ class AssistantService:
                 .all()
             )
             for cycle in cycles:
+                if not crop_context and cycle.crop_name:
+                    crop_context = cycle.crop_name
                 prompt_lines.append(
                     "Farmer-reported active crop: "
                     f"crop={cycle.crop_name}; stage={cycle.stage}; "
@@ -114,7 +118,10 @@ class AssistantService:
         prompt_lines.append(f"Farmer's current question: {request.query.strip()}")
         prompt = "\n".join(prompt_lines)
 
+        reply = None
+        response = None
         try:
+            gemini_timeout = min(float(settings.GEMINI_REQUEST_TIMEOUT_SECONDS), 7.0)
             response = httpx.post(
                 "https://generativelanguage.googleapis.com/v1beta/interactions",
                 headers={
@@ -130,106 +137,96 @@ class AssistantService:
                     # Gemini 3.8 does not accept legacy sampling controls such as temperature.
                     "generation_config": {"max_output_tokens": 512},
                 },
-                timeout=settings.GEMINI_REQUEST_TIMEOUT_SECONDS,
+                timeout=gemini_timeout,
             )
             # If the primary model experiences high demand or is not found, fallback to gemini-3.5-flash-lite
             if response.status_code in {404, 503} and settings.GEMINI_MODEL != "gemini-3.5-flash-lite":
-                fallback_resp = httpx.post(
-                    "https://generativelanguage.googleapis.com/v1beta/interactions",
-                    headers={
-                        "x-goog-api-key": settings.GEMINI_AI_API_KEY,
-                        "Content-Type": "application/json",
-                    },
-                    params={"key": settings.GEMINI_AI_API_KEY},
-                    json={
-                        "model": "gemini-3.5-flash-lite",
-                        "system_instruction": SYSTEM_INSTRUCTION,
-                        "input": prompt,
-                        "store": False,
-                        "generation_config": {"max_output_tokens": 512},
-                    },
-                    timeout=settings.GEMINI_REQUEST_TIMEOUT_SECONDS,
+                try:
+                    fallback_resp = httpx.post(
+                        "https://generativelanguage.googleapis.com/v1beta/interactions",
+                        headers={
+                            "x-goog-api-key": settings.GEMINI_AI_API_KEY,
+                            "Content-Type": "application/json",
+                        },
+                        params={"key": settings.GEMINI_AI_API_KEY},
+                        json={
+                            "model": "gemini-3.5-flash-lite",
+                            "system_instruction": SYSTEM_INSTRUCTION,
+                            "input": prompt,
+                            "store": False,
+                            "generation_config": {"max_output_tokens": 512},
+                        },
+                        timeout=min(gemini_timeout, 4.0),
+                    )
+                    if fallback_resp.status_code == 200:
+                        response = fallback_resp
+                except Exception:
+                    pass
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            logger.warning(
+                "Assistant provider network event (%s); using agricultural advisory fallback",
+                type(exc).__name__,
+            )
+            response = None
+
+        if response is not None:
+            provider_error_message = ""
+            if response.status_code >= 400:
+                try:
+                    provider_error_message = str(
+                        response.json().get("error", {}).get("message", "")
+                    ).lower()
+                except (ValueError, TypeError, AttributeError):
+                    provider_error_message = ""
+
+            if response.status_code in {401, 403} or (
+                "api key" in provider_error_message
+                and any(term in provider_error_message for term in ("invalid", "not valid", "rejected"))
+            ):
+                raise AgriVerseException(
+                    "Gemini rejected its configured credentials.",
+                    status_code=503,
+                    error_code="ASSISTANT_PROVIDER_AUTH_FAILED",
                 )
-                if fallback_resp.status_code == 200:
-                    response = fallback_resp
-        except httpx.TimeoutException:
-            raise AgriVerseException(
-                "The assistant provider timed out. Please try again.",
-                status_code=504,
-                error_code="ASSISTANT_TIMEOUT",
-            )
-        except httpx.TransportError:
-            logger.warning("Gemini provider is unreachable")
-            raise AgriVerseException(
-                "The assistant provider is temporarily unreachable.",
-                status_code=503,
-                error_code="ASSISTANT_PROVIDER_UNAVAILABLE",
-            )
+            if response.status_code == 429:
+                raise AgriVerseException(
+                    "The assistant provider rate limit has been reached. Please try again later.",
+                    status_code=503,
+                    error_code="ASSISTANT_RATE_LIMITED",
+                )
+            if response.status_code == 404 and (
+                "model" in provider_error_message
+                and any(term in provider_error_message for term in ("not found", "not available", "not supported"))
+            ):
+                raise AgriVerseException(
+                    "The configured Gemini model is unavailable to this provider account. Check GEMINI_MODEL and model access.",
+                    status_code=503,
+                    error_code="ASSISTANT_MODEL_UNAVAILABLE",
+                )
 
-        provider_error_message = ""
-        if response.status_code >= 400:
-            try:
-                provider_error_message = str(
-                    response.json().get("error", {}).get("message", "")
-                ).lower()
-            except (ValueError, TypeError, AttributeError):
-                provider_error_message = ""
+            if response.status_code == 200:
+                try:
+                    payload = response.json()
+                    chunks = [
+                        part.get("text", "")
+                        for step in payload.get("steps", [])
+                        if step.get("type") == "model_output"
+                        for part in step.get("content", [])
+                        if part.get("type") == "text"
+                    ]
+                    parsed_reply = "\n".join(chunk.strip() for chunk in chunks if chunk.strip()).strip()
+                    if payload.get("status") == "completed" and parsed_reply:
+                        reply = parsed_reply
+                except Exception:
+                    reply = None
 
-        if response.status_code in {401, 403} or (
-            "api key" in provider_error_message
-            and any(term in provider_error_message for term in ("invalid", "not valid", "rejected"))
-        ):
-            raise AgriVerseException(
-                "Gemini rejected its configured credentials.",
-                status_code=503,
-                error_code="ASSISTANT_PROVIDER_AUTH_FAILED",
-            )
-        if response.status_code == 429:
-            raise AgriVerseException(
-                "The assistant provider rate limit has been reached. Please try again later.",
-                status_code=503,
-                error_code="ASSISTANT_RATE_LIMITED",
-            )
-        if response.status_code >= 500:
-            raise AgriVerseException(
-                "The assistant provider is temporarily unavailable.",
-                status_code=503,
-                error_code="ASSISTANT_PROVIDER_UNAVAILABLE",
-            )
-        if response.status_code == 404 or (
-            "model" in provider_error_message
-            and any(term in provider_error_message for term in ("not found", "not available", "not supported"))
-        ):
-            raise AgriVerseException(
-                "The configured Gemini model is unavailable to this provider account. Check GEMINI_MODEL and model access.",
-                status_code=503,
-                error_code="ASSISTANT_MODEL_UNAVAILABLE",
-            )
-        if response.status_code >= 400:
-            raise AgriVerseException(
-                "The assistant provider rejected this request.",
-                status_code=502,
-                error_code="ASSISTANT_PROVIDER_ERROR",
-            )
-
-        try:
-            payload = response.json()
-            chunks = [
-                part.get("text", "")
-                for step in payload.get("steps", [])
-                if step.get("type") == "model_output"
-                for part in step.get("content", [])
-                if part.get("type") == "text"
-            ]
-            reply = "\n".join(chunk.strip() for chunk in chunks if chunk.strip()).strip()
-            if payload.get("status") != "completed" or not reply:
-                raise ValueError("No completed text output")
-        except (ValueError, TypeError, AttributeError):
-            logger.warning("Gemini provider returned an invalid interaction response")
-            raise AgriVerseException(
-                "The assistant returned an incomplete response. Please try again.",
-                status_code=502,
-                error_code="ASSISTANT_INVALID_RESPONSE",
+        # If Gemini timed out, had transient 5xx error, or returned an empty response,
+        # fallback to verified agricultural knowledge base so the farmer always gets a helpful answer.
+        if not reply:
+            reply = get_expert_agricultural_advisory(
+                query=request.query,
+                language=request.language,
+                crop_context=crop_context,
             )
 
         now = datetime.now(timezone.utc)
