@@ -1,0 +1,39 @@
+# Secrets and local runtime data
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+*.db
+*.sqlite3
+*.sqlite
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Flutter / Dart / Android build output
+frontend/.dart_tool/
+frontend/build/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/key.properties
+frontend/android/app/*.jks
+frontend/android/app/*.keystore
+frontend/android/app/build/
+
+# IDE and operating system files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
