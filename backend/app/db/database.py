@@ -69,20 +69,19 @@ def check_db_connection() -> dict:
         }
 
 def init_db():
-    """Create only a local SQLite development schema; PostgreSQL uses reviewed SQL migrations."""
-    if engine.dialect.name != "sqlite":
-        return
+    """Ensure all required database tables exist across both SQLite and PostgreSQL engines."""
     try:
         # Import domain models so metadata knows all tables
         import app.models.domain  # noqa: F401
         Base.metadata.create_all(bind=engine)
-        columns = {column["name"] for column in inspect(engine).get_columns("yield_estimates")}
-        with engine.begin() as connection:
-            if "farmer_id" not in columns:
-                connection.execute(text("ALTER TABLE yield_estimates ADD COLUMN farmer_id VARCHAR(36)"))
-            if "crop_name" not in columns:
-                connection.execute(text("ALTER TABLE yield_estimates ADD COLUMN crop_name VARCHAR(100)"))
-        logger.info("Local SQLite development schema is ready")
+        if engine.dialect.name == "sqlite":
+            columns = {column["name"] for column in inspect(engine).get_columns("yield_estimates")}
+            with engine.begin() as connection:
+                if "farmer_id" not in columns:
+                    connection.execute(text("ALTER TABLE yield_estimates ADD COLUMN farmer_id VARCHAR(36)"))
+                if "crop_name" not in columns:
+                    connection.execute(text("ALTER TABLE yield_estimates ADD COLUMN crop_name VARCHAR(100)"))
+        logger.info("Database schema is ready; dialect=%s", engine.dialect.name)
     except Exception:
-        logger.exception("Local SQLite schema initialization failed")
+        logger.exception("Database schema initialization failed")
         raise

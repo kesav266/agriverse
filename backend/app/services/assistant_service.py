@@ -116,11 +116,12 @@ class AssistantService:
 
         try:
             response = httpx.post(
-                "https://generativelanguage.googleapis.com/v1/interactions",
+                "https://generativelanguage.googleapis.com/v1beta/interactions",
                 headers={
                     "x-goog-api-key": settings.GEMINI_AI_API_KEY,
                     "Content-Type": "application/json",
                 },
+                params={"key": settings.GEMINI_AI_API_KEY},
                 json={
                     "model": settings.GEMINI_MODEL,
                     "system_instruction": SYSTEM_INSTRUCTION,
@@ -131,6 +132,26 @@ class AssistantService:
                 },
                 timeout=settings.GEMINI_REQUEST_TIMEOUT_SECONDS,
             )
+            # If the primary model experiences high demand or is not found, fallback to gemini-3.5-flash-lite
+            if response.status_code in {404, 503} and settings.GEMINI_MODEL != "gemini-3.5-flash-lite":
+                fallback_resp = httpx.post(
+                    "https://generativelanguage.googleapis.com/v1beta/interactions",
+                    headers={
+                        "x-goog-api-key": settings.GEMINI_AI_API_KEY,
+                        "Content-Type": "application/json",
+                    },
+                    params={"key": settings.GEMINI_AI_API_KEY},
+                    json={
+                        "model": "gemini-3.5-flash-lite",
+                        "system_instruction": SYSTEM_INSTRUCTION,
+                        "input": prompt,
+                        "store": False,
+                        "generation_config": {"max_output_tokens": 512},
+                    },
+                    timeout=settings.GEMINI_REQUEST_TIMEOUT_SECONDS,
+                )
+                if fallback_resp.status_code == 200:
+                    response = fallback_resp
         except httpx.TimeoutException:
             raise AgriVerseException(
                 "The assistant provider timed out. Please try again.",

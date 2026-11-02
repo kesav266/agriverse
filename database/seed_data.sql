@@ -245,14 +245,14 @@ INSERT INTO public.assistant_messages (
 )
 VALUES 
     (
-        'm1m1m1m1-m1m1-m1m1-m1m1-m1m1m1m1m1m1',
+        'e1e1e1e1-e1e1-e1e1-e1e1-e1e1e1e1e1e1',
         'c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1',
         'user',
         'వరి పూత దశలో ఏ ఎరువులు వాడాలి?',
         'te'
     ),
     (
-        'm2m2m2m2-m2m2-m2m2-m2m2-m2m2m2m2m2m2',
+        'e2e2e2e2-e2e2-e2e2-e2e2-e2e2e2e2e2e2',
         'c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1',
         'assistant',
         'వరి పూత దశలో ధాన్యం నాణ్యత మెరుగుపరచడానికి మరియు గింజ బరువు పెరగడానికి ఎకరానికి 25 కిలోల పొటాషియం క్లోరైడ్ (MOP) చల్లండి. పొలంలో 2-3 సెం.మీ తేమ ఉండేలా చూడండి.',

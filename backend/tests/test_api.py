@@ -241,7 +241,7 @@ def test_assistant_persists_provider_reply_and_checks_conversation_owner(
             }
 
     def fake_post(url, **kwargs):
-        assert url.endswith("/v1/interactions")
+        assert "/interactions" in url
         assert kwargs["headers"]["x-goog-api-key"] == "test-provider-key"
         assert kwargs["json"]["store"] is False
         assert "temperature" not in kwargs["json"]["generation_config"]

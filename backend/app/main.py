@@ -7,6 +7,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Upload
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.config import settings
 from app.core.exceptions import AgriVerseException
@@ -38,8 +39,7 @@ from sqlalchemy.orm import Session
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    if engine.dialect.name == "sqlite":
-        init_db()
+    init_db()
     logger.info("AgriVerse API started; database dialect=%s", engine.dialect.name)
     yield
     logger.info("AgriVerse API stopped")
@@ -58,9 +58,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$" if settings.ENVIRONMENT == "development" else None,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -160,6 +161,36 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         status_code=exc.status_code,
         content={"error_code": "HTTP_ERROR", "detail": exc.detail},
         headers=exc.headers,
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_exception_handler(request: Request, exc: SQLAlchemyError):
+    """Return a safe database error without exposing SQL or bound farmer data."""
+    original = getattr(exc, "orig", None)
+    sqlstate = getattr(original, "sqlstate", None)
+    schema_missing = sqlstate == "42P01"
+    logger.error(
+        "Database API error method=%s path=%s exception_type=%s sqlstate=%s",
+        request.method,
+        request.url.path,
+        type(exc).__name__,
+        sqlstate,
+    )
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error_code": (
+                "DATABASE_SCHEMA_NOT_INITIALIZED"
+                if schema_missing
+                else "DATABASE_UNAVAILABLE"
+            ),
+            "detail": (
+                "The backend database schema is not initialized."
+                if schema_missing
+                else "The backend database is unavailable."
+            ),
+        },
     )
 
 
