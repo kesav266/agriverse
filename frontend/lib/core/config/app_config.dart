@@ -9,5 +9,5 @@ class AppConfig {
 
   static const String appName = 'AgriVerse AI';
   static const String appVersion = '1.0.0';
-  static const int requestTimeoutSeconds = 8;
+  static const int requestTimeoutSeconds = 30;
 }

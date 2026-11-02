@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -196,12 +197,16 @@ class ApiClient {
     String lang,
     bool simpleMode, {
     String? conversationId,
-  }) => _post('/farm-assistant/query', {
-    'query': query,
-    'language': lang,
-    'simple_mode': simpleMode,
-    'conversation_id': ?conversationId,
-  });
+  }) => _post(
+    '/farm-assistant/query',
+    {
+      'query': query,
+      'language': lang,
+      'simple_mode': simpleMode,
+      'conversation_id': ?conversationId,
+    },
+    timeoutSeconds: 45,
+  );
 
   Future<List<dynamic>> getAssistantConversations({
     int skip = 0,
@@ -226,13 +231,15 @@ class ApiClient {
 
   Future<Map<String, dynamic>> _post(
     String path,
-    Map<String, dynamic> body,
-  ) async => _asMap(await _request('POST', path, body: body));
+    Map<String, dynamic> body, {
+    int? timeoutSeconds,
+  }) async => _asMap(await _request('POST', path, body: body, timeoutSeconds: timeoutSeconds));
 
   Future<List<dynamic>> _postList(
     String path,
-    Map<String, dynamic> body,
-  ) async => _asList(await _request('POST', path, body: body));
+    Map<String, dynamic> body, {
+    int? timeoutSeconds,
+  }) async => _asList(await _request('POST', path, body: body, timeoutSeconds: timeoutSeconds));
 
   Future<Map<String, dynamic>> _put(
     String path,
@@ -253,8 +260,12 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? body,
     bool expectJson = true,
+    int? timeoutSeconds,
   }) async {
     final uri = Uri.parse('$effectiveBaseUrl$path');
+    final timeout = Duration(
+      seconds: timeoutSeconds ?? AppConfig.requestTimeoutSeconds,
+    );
     try {
       late http.Response response;
       final headers = <String, String>{
@@ -263,29 +274,26 @@ class ApiClient {
       };
       switch (method) {
         case 'GET':
-          response = await _client
-              .get(uri, headers: headers)
-              .timeout(Duration(seconds: AppConfig.requestTimeoutSeconds));
+          response = await _client.get(uri, headers: headers).timeout(timeout);
           break;
         case 'POST':
           response = await _client
               .post(uri, headers: headers, body: jsonEncode(body))
-              .timeout(Duration(seconds: AppConfig.requestTimeoutSeconds));
+              .timeout(timeout);
           break;
         case 'PUT':
           response = await _client
               .put(uri, headers: headers, body: jsonEncode(body))
-              .timeout(Duration(seconds: AppConfig.requestTimeoutSeconds));
+              .timeout(timeout);
           break;
         case 'PATCH':
           response = await _client
               .patch(uri, headers: headers, body: jsonEncode(body))
-              .timeout(Duration(seconds: AppConfig.requestTimeoutSeconds));
+              .timeout(timeout);
           break;
         case 'DELETE':
-          response = await _client
-              .delete(uri, headers: headers)
-              .timeout(Duration(seconds: AppConfig.requestTimeoutSeconds));
+          response =
+              await _client.delete(uri, headers: headers).timeout(timeout);
           break;
         default:
           throw StateError('Unsupported HTTP method');
@@ -302,8 +310,14 @@ class ApiClient {
       }
     } on ApiException {
       rethrow;
+    } on TimeoutException {
+      throw const ApiException(
+        statusCode: 504,
+        message:
+            'The AI assistant is taking longer than usual. Please try again.',
+      );
     } catch (_) {
-      throw ApiException(
+      throw const ApiException(
         statusCode: 0,
         message:
             'Could not reach the AgriVerse backend. Check your connection and try again.',
