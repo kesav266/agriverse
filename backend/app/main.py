@@ -8,11 +8,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.core.config import settings
 from app.core.exceptions import AgriVerseException
 from app.core.logging import logger
-from app.services.disease_service import disease_model_configured
+from app.services.disease_service import disease_model_configured, preload_disease_model
 from app.core.security import get_current_farmer
 from app.db.database import check_db_connection, engine, get_db, init_db
 from app.models.domain import ProfileDB
@@ -40,7 +41,9 @@ from sqlalchemy.orm import Session
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    disease_model_loaded = preload_disease_model()
     logger.info("AgriVerse API started; database dialect=%s", engine.dialect.name)
+    logger.info("Crop-disease model preloaded=%s", disease_model_loaded)
     yield
     logger.info("AgriVerse API stopped")
 
@@ -63,6 +66,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.TRUSTED_HOSTS)
 
 
 @app.middleware("http")

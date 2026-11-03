@@ -42,6 +42,7 @@ class Settings(BaseSettings):
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     ]
+    TRUSTED_HOSTS: List[str] = ["localhost", "127.0.0.1", "testserver"]
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -78,8 +79,14 @@ class Settings(BaseSettings):
                 raise ValueError("Production SECRET_KEY must not be a placeholder")
             if self.DEBUG:
                 raise ValueError("DEBUG must be false in production")
-            if "*" in self.CORS_ORIGINS:
-                raise ValueError("Production CORS_ORIGINS must not contain '*'")
+            if not self.CORS_ORIGINS or "*" in self.CORS_ORIGINS:
+                raise ValueError("Production CORS_ORIGINS must contain exact HTTPS frontend origins")
+            if any(not origin.startswith("https://") for origin in self.CORS_ORIGINS):
+                raise ValueError("Production CORS_ORIGINS must use HTTPS origins only")
+            if not self.TRUSTED_HOSTS or "*" in self.TRUSTED_HOSTS:
+                raise ValueError("Production TRUSTED_HOSTS must contain exact API hostnames")
+            if any(host in {"localhost", "127.0.0.1"} for host in self.TRUSTED_HOSTS):
+                raise ValueError("Production TRUSTED_HOSTS must not contain local development hosts")
             if not self.DATABASE_URL or not self.DATABASE_URL.strip().startswith(("postgres://", "postgresql://", "postgresql+psycopg://", "postgresql+psycopg2://")):
                 raise ValueError("Production DATABASE_URL must point to PostgreSQL")
         return self

@@ -290,6 +290,10 @@ class IrrigationScheduleResponse(BaseModel):
 class DiagnosisRequest(BaseModel):
     crop_name: str
 
+class DiseasePrediction(BaseModel):
+    label: str
+    confidence: float = Field(ge=0.0, le=1.0)
+
 class DiagnosisResponse(BaseModel):
     id: str
     farmer_id: Optional[str] = None
@@ -297,6 +301,7 @@ class DiagnosisResponse(BaseModel):
     detected_disease: str
     severity: str # Low, Moderate, High
     confidence_score: Optional[float] = None
+    top_predictions: List[DiseasePrediction] = Field(default_factory=list)
     recommended_treatment_en: str
     recommended_treatment_te: str
     inference_engine: str = "configured_yolo_model"

@@ -40,15 +40,17 @@ class AppCard extends StatelessWidget {
     final effectiveShadow =
         boxShadow ?? (isDark ? AppShadows.darkCard : AppShadows.subtle);
 
-    Widget cardContent = Container(
+    final decoration = BoxDecoration(
+      color: gradient == null ? (color ?? defaultBg) : null,
+      gradient: gradient,
+      borderRadius: BorderRadius.circular(borderRadius),
+      border: effectiveBorder,
+      boxShadow: effectiveShadow,
+    );
+
+    final cardContent = Container(
       padding: padding,
-      decoration: BoxDecoration(
-        color: gradient == null ? (color ?? defaultBg) : null,
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: effectiveBorder,
-        boxShadow: effectiveShadow,
-      ),
+      decoration: decoration,
       child: child,
     );
 
@@ -58,12 +60,16 @@ class AppCard extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(borderRadius),
+          clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(borderRadius),
-            splashColor: AppColors.forestPine.withValues(alpha: 0.08),
-            highlightColor: AppColors.forestPine.withValues(alpha: 0.04),
-            child: cardContent,
+            splashColor: AppColors.luminousSage.withValues(alpha: 0.12),
+            highlightColor: AppColors.forestPine.withValues(alpha: 0.05),
+            child: Ink(
+              decoration: decoration,
+              child: Padding(padding: padding, child: child),
+            ),
           ),
         ),
       );
@@ -106,7 +112,39 @@ class HeroDarkCard extends StatelessWidget {
           offset: const Offset(0, 6),
         ),
       ],
-      child: child,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadii.lgValue),
+        child: Stack(
+          clipBehavior: Clip.hardEdge,
+          children: [
+            Positioned(
+              top: -72,
+              right: -54,
+              child: Container(
+                width: 168,
+                height: 168,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.luminousSage.withValues(alpha: 0.16),
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: -88,
+              left: -64,
+              child: Container(
+                width: 150,
+                height: 150,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.harvestGold.withValues(alpha: 0.10),
+                ),
+              ),
+            ),
+            child,
+          ],
+        ),
+      ),
     );
   }
 }

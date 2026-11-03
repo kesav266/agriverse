@@ -69,18 +69,38 @@ def check_db_connection() -> dict:
         }
 
 def init_db():
-    """Ensure all required database tables exist across both SQLite and PostgreSQL engines."""
+    """Initialize SQLite development storage or verify a migrated PostgreSQL schema."""
     try:
         # Import domain models so metadata knows all tables
         import app.models.domain  # noqa: F401
-        Base.metadata.create_all(bind=engine)
         if engine.dialect.name == "sqlite":
+            Base.metadata.create_all(bind=engine)
             columns = {column["name"] for column in inspect(engine).get_columns("yield_estimates")}
             with engine.begin() as connection:
                 if "farmer_id" not in columns:
                     connection.execute(text("ALTER TABLE yield_estimates ADD COLUMN farmer_id VARCHAR(36)"))
                 if "crop_name" not in columns:
                     connection.execute(text("ALTER TABLE yield_estimates ADD COLUMN crop_name VARCHAR(100)"))
+        else:
+            required_tables = {
+                "profiles",
+                "farms",
+                "crop_cycles",
+                "farm_observations",
+                "crop_recommendations",
+                "weather_observations",
+                "crop_health_diagnoses",
+                "yield_estimates",
+                "assistant_conversations",
+                "assistant_messages",
+            }
+            existing_tables = set(inspect(engine).get_table_names(schema="public"))
+            missing_tables = sorted(required_tables - existing_tables)
+            if missing_tables:
+                raise RuntimeError(
+                    "PostgreSQL schema is incomplete. Apply the reviewed database migrations before starting "
+                    f"the API. Missing tables: {', '.join(missing_tables)}"
+                )
         logger.info("Database schema is ready; dialect=%s", engine.dialect.name)
     except Exception:
         logger.exception("Database schema initialization failed")

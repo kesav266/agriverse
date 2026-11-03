@@ -109,10 +109,14 @@ class AppBottomNav extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              isSelected ? activeIcon : inactiveIcon,
-              size: 22,
-              color: isSelected ? selectedColor : unselectedColor,
+            AnimatedScale(
+              duration: const Duration(milliseconds: 180),
+              scale: isSelected ? 1.06 : 1,
+              child: Icon(
+                isSelected ? activeIcon : inactiveIcon,
+                size: 22,
+                color: isSelected ? selectedColor : unselectedColor,
+              ),
             ),
             if (isSelected) ...[
               const SizedBox(width: 6),

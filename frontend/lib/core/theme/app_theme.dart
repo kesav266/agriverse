@@ -201,6 +201,23 @@ class AppTheme {
         thickness: 1.0,
         space: 20.0,
       ),
+
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.deepWoodland,
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.surfaceWhite,
+          fontWeight: FontWeight.w600,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.mdValue),
+        ),
+      ),
+
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.luminousSage,
+        linearTrackColor: AppColors.mistMint,
+      ),
     );
   }
 
@@ -371,6 +388,23 @@ class AppTheme {
         color: AppColors.borderDark,
         thickness: 1.0,
         space: 20.0,
+      ),
+
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.cardElevatedDark,
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.textDarkPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.mdValue),
+        ),
+      ),
+
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.luminousSage,
+        linearTrackColor: AppColors.deepWoodland,
       ),
     );
   }

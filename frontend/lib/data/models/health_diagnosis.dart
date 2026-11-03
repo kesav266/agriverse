@@ -6,6 +6,7 @@ class HealthDiagnosis {
   final String treatmentEn;
   final String treatmentTe;
   final double? confidenceScore;
+  final List<DiseasePrediction> topPredictions;
   final bool needsExpertReview;
 
   HealthDiagnosis({
@@ -16,6 +17,7 @@ class HealthDiagnosis {
     required this.treatmentEn,
     required this.treatmentTe,
     this.confidenceScore,
+    this.topPredictions = const [],
     this.needsExpertReview = true,
   });
 
@@ -28,9 +30,26 @@ class HealthDiagnosis {
       treatmentEn: _requiredString(json, 'recommended_treatment_en'),
       treatmentTe: _requiredString(json, 'recommended_treatment_te'),
       confidenceScore: (json['confidence_score'] as num?)?.toDouble(),
+      topPredictions: (json['top_predictions'] as List<dynamic>? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(DiseasePrediction.fromJson)
+          .toList(),
       needsExpertReview: json['needs_expert_review'] as bool? ?? true,
     );
   }
+}
+
+class DiseasePrediction {
+  final String label;
+  final double confidence;
+
+  const DiseasePrediction({required this.label, required this.confidence});
+
+  factory DiseasePrediction.fromJson(Map<String, dynamic> json) =>
+      DiseasePrediction(
+        label: _requiredString(json, 'label'),
+        confidence: (json['confidence'] as num).toDouble(),
+      );
 }
 
 String _requiredString(Map<String, dynamic> json, String key) {

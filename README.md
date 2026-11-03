@@ -63,6 +63,7 @@ Copy `backend/.env.example` to `backend/.env`, then set values for the selected 
 | `SECRET_KEY` | Yes | Generate a private random key of at least 32 bytes |
 | `DATABASE_URL` | Production | PostgreSQL/Supabase direct connection URL; leave empty only for local SQLite development |
 | `CORS_ORIGINS` | Production | JSON array of exact trusted web origins; Android native clients do not use browser CORS |
+| `TRUSTED_HOSTS` | Production | JSON array of exact public API hostnames; never use `*` |
 | `WEATHER_API_KEY` | Weather | OpenWeather provider key; empty disables weather and returns a clear unavailable response |
 | `GEMINI_AI_API_KEY` | Assistant | Gemini API key; empty disables assistant responses |
 | `GEMINI_MODEL` | Assistant | Provider model identifier enabled for the account |
@@ -126,6 +127,8 @@ Crop cycles use `GET /api/v1/crop-cycles/farm/{farm_id}?skip=0&limit=50`, `POST 
 
 For optional YOLO inference, install `python -m pip install -r requirements-ml.txt`, place compatible trained YOLO weights in private backend storage outside the repository, and set `DISEASE_MODEL_PATH` to their absolute path. Set `DISEASE_ALLOWED_LABELS` to a JSON array of exact class names verified against that model's training metadata (for example, `["verified-class-from-model"]`; do not copy this example as a label). Restart the backend, confirm `/health/ready` reports `disease_model_configured: true`, then run a reviewed known-image inference test before enabling farmer access. Unknown or unmapped model classes remain uncertain. No weights or disease label mapping are bundled.
 
+For the PlantVillage YOLO classification workflow, including safe Kaggle download, leakage-safe 80:20 split preparation, training, and model-derived runtime labels, see `backend/CROP_DISEASE_SETUP.md`.
+
 ## Frontend installation and launch
 
 ```powershell
@@ -135,6 +138,22 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 ```
 
 The Android emulator uses `10.0.2.2` to reach the host machine. Development Android builds permit cleartext HTTP for local testing; release manifests deny cleartext traffic.
+
+### Run the complete local stack
+
+From the repository root, the PowerShell launcher starts the FastAPI backend, verifies the configured database connection, and then runs Flutter. It stops the backend when Flutter exits:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-all.ps1
+```
+
+This opens the web app in Chrome. To run on an already-started Android emulator or connected Android device, use:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-all.ps1 -Platform android
+```
+
+The launcher uses the PostgreSQL/Supabase connection configured in `backend/.env`; it does not start a separate database server. If `DATABASE_URL` is empty, the backend uses its local SQLite database instead.
 
 ## Testing and quality checks
 
@@ -179,6 +198,26 @@ uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
 Configure the host to probe `/health/ready`, restrict database network access to the backend, retain encrypted backups, and set exact web CORS origins. Keep database/provider keys out of logs and mobile artifacts. This repository has no configured hosting account, DNS, deployment credentials, or production model file, so no live deployment is claimed.
+
+### Container deployment
+
+The backend includes a non-root production container. Before building it, apply the reviewed PostgreSQL migrations to a staging copy, verify the API with two farmer accounts, then apply only the pending migrations to production. The API will refuse to start against PostgreSQL when required tables are missing; it never creates PostgreSQL tables automatically.
+
+1. Copy `backend/.env.production.example` to `backend/.env.production` outside source control and replace every placeholder through the deployment secret manager. Set `ENVIRONMENT=production`, a new `SECRET_KEY`, the PostgreSQL URL, exact HTTPS `CORS_ORIGINS`, and the exact public `TRUSTED_HOSTS` API hostname. Set `HEALTHCHECK_HOST` to a value in `TRUSTED_HOSTS` so the container health probe can pass host validation.
+2. Build and start the API behind an HTTPS reverse proxy or managed load balancer. The compose file intentionally binds the API to `127.0.0.1:8000`; terminate TLS at the proxy and route health checks to `/health/ready`.
+
+```powershell
+docker compose -f compose.production.yml up --build -d
+```
+
+3. Build Flutter only with the public HTTPS API endpoint. Never ship `localhost`, `10.0.2.2`, database URLs, provider keys, or the backend `.env` file in a client build.
+
+```powershell
+cd frontend
+flutter build web --release --dart-define=API_BASE_URL=https://api.example.com/api/v1
+```
+
+Use a CDN or HTTPS web host to publish `frontend/build/web`. For Android, use the equivalent HTTPS define with the release signing configuration described above. Configure host-level rate limiting, request-size limits, encrypted backups, monitoring, alerts, and log retention; the in-process API limits are not a replacement for edge protection.
 
 ## Known limits and troubleshooting
 

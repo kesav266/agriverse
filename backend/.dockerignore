@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+!.env.production.example
+.venv
+__pycache__
+.pytest_cache
+tests
+*.db
+*.sqlite3
+*.log
+requirements-ml.txt

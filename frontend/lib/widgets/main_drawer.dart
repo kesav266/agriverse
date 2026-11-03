@@ -20,6 +20,7 @@ class MainDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = Provider.of<AppStateProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final profile = state.currentProfile;
     final location = [
       profile?.village,
@@ -28,7 +29,7 @@ class MainDrawer extends StatelessWidget {
     ].whereType<String>().where((part) => part.trim().isNotEmpty).join(', ');
 
     return Drawer(
-      backgroundColor: AppColors.warmIvory,
+      backgroundColor: isDark ? AppColors.nightCanopy : AppColors.warmIvory,
       child: Column(
         children: [
           // Header
@@ -211,7 +212,7 @@ class MainDrawer extends StatelessWidget {
         style: TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 14.5,
-          color: color ?? AppColors.textPrimary,
+                  color: color ?? (isDark ? AppColors.textDarkPrimary : AppColors.textPrimary),
         ),
       ),
       onTap: () {

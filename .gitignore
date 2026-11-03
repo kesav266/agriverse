@@ -9,6 +9,8 @@
 *.sqlite3
 *.sqlite
 *.log
+backend/datasets/
+backend/models/
 
 # Python
 __pycache__/

@@ -1,2 +1,2 @@
-# Install after backend/requirements.txt only when deploying crop image inference.
-ultralytics>=8.3,<9
+# Backward-compatible ML dependency entry point.
+-r requirements.txt

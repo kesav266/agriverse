@@ -258,6 +258,14 @@ class _DiagnosisCard extends StatelessWidget {
           Text(
             '${context.read<AppStateProvider>().tr('confidence')}: ${(diagnosis.confidenceScore! * 100).toStringAsFixed(1)}%',
           ),
+        if (diagnosis.topPredictions.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          const Text('Top model predictions'),
+          for (final prediction in diagnosis.topPredictions)
+            Text(
+              '${prediction.label}: ${(prediction.confidence * 100).toStringAsFixed(1)}%',
+            ),
+        ],
         const SizedBox(height: 12),
         Text(language == 'te' ? diagnosis.treatmentTe : diagnosis.treatmentEn),
       ],

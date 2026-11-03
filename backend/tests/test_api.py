@@ -4,6 +4,7 @@ from types import SimpleNamespace
 
 from PIL import Image
 import io
+from pathlib import Path
 
 from app.core.config import settings
 from app.services.weather_service import WeatherService
@@ -160,13 +161,12 @@ def test_crop_diagnosis_never_guesses_when_model_is_missing(client, register_far
 
 
 def test_crop_diagnosis_uses_mocked_model_only_in_test_and_saves_result(
-    client, register_farmer, monkeypatch, tmp_path
+    client, register_farmer, monkeypatch
 ):
     from app.services import disease_service
 
     _, headers, _, _ = register_farmer("Mock Diagnosis Farmer")
-    model_path = tmp_path / "test-model.pt"
-    model_path.write_bytes(b"test fixture only")
+    model_path = Path(__file__).resolve()
     monkeypatch.setattr(settings, "DISEASE_MODEL_PATH", str(model_path))
     monkeypatch.setattr(settings, "DISEASE_MODEL_CONFIDENCE", 0.5)
     monkeypatch.setattr(settings, "DISEASE_ALLOWED_LABELS", ["Test class from mock model"])
@@ -209,6 +209,122 @@ def test_crop_diagnosis_uses_mocked_model_only_in_test_and_saves_result(
     history = client.get("/api/v1/crop-health/history", headers=headers)
     assert history.status_code == 200
     assert history.json()[0]["detected_disease"] == "Test class from mock model"
+
+
+def test_crop_classification_returns_supported_top_predictions(client, register_farmer, monkeypatch):
+    from app.services import disease_service
+
+    _, headers, _, _ = register_farmer("Classification Farmer")
+    monkeypatch.setattr(settings, "DISEASE_MODEL_PATH", str(Path(__file__).resolve()))
+    monkeypatch.setattr(settings, "DISEASE_MODEL_CONFIDENCE", 0.5)
+    monkeypatch.setattr(
+        settings,
+        "DISEASE_ALLOWED_LABELS",
+        ["Tomato___Early_blight", "Tomato___healthy"],
+    )
+
+    class TensorLike:
+        def __init__(self, values):
+            self.values = values
+
+        def detach(self): return self
+        def cpu(self): return self
+        def tolist(self): return self.values
+
+    class Probabilities:
+        top5 = [0, 1]
+        top5conf = TensorLike([0.91, 0.07])
+
+    class Prediction:
+        probs = Probabilities()
+        names = {0: "Tomato___Early_blight", 1: "Tomato___healthy"}
+
+    class MockModel:
+        def predict(self, **kwargs):
+            assert kwargs["verbose"] is False
+            return [Prediction()]
+
+    monkeypatch.setattr(disease_service, "_load_model", lambda path: MockModel())
+    image = io.BytesIO()
+    Image.new("RGB", (64, 64), color="green").save(image, format="PNG")
+    response = client.post(
+        "/api/v1/crop-health/diagnose-image",
+        headers=headers,
+        data={"crop_name": "Tomato"},
+        files={"file": ("leaf.png", image.getvalue(), "image/png")},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["detected_disease"] == "Tomato___Early_blight"
+    assert body["confidence_score"] == 0.91
+    assert body["top_predictions"] == [
+        {"label": "Tomato___Early_blight", "confidence": 0.91},
+        {"label": "Tomato___healthy", "confidence": 0.07},
+    ]
+
+
+def test_crop_classification_rejects_unsupported_model_labels(client, register_farmer, monkeypatch):
+    from app.services import disease_service
+
+    _, headers, _, _ = register_farmer("Unsupported Classification Farmer")
+    monkeypatch.setattr(settings, "DISEASE_MODEL_PATH", str(Path(__file__).resolve()))
+    monkeypatch.setattr(settings, "DISEASE_ALLOWED_LABELS", ["Tomato___healthy"])
+
+    class Probabilities:
+        top5 = [0]
+        top5conf = [0.97]
+
+    class Prediction:
+        probs = Probabilities()
+        names = {0: "Unreviewed_class"}
+
+    class MockModel:
+        def predict(self, **kwargs):
+            return [Prediction()]
+
+    monkeypatch.setattr(disease_service, "_load_model", lambda path: MockModel())
+    image = io.BytesIO()
+    Image.new("RGB", (64, 64), color="green").save(image, format="PNG")
+    response = client.post(
+        "/api/v1/crop-health/diagnose-image",
+        headers=headers,
+        data={"crop_name": "Tomato"},
+        files={"file": ("leaf.png", image.getvalue(), "image/png")},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["detected_disease"].startswith("Uncertain")
+    assert body["confidence_score"] is None
+    assert body["top_predictions"] == []
+
+
+def test_crop_diagnosis_reports_a_configured_missing_model(client, register_farmer, monkeypatch):
+    _, headers, _, _ = register_farmer("Missing Model Farmer")
+    monkeypatch.setattr(settings, "DISEASE_MODEL_PATH", "C:/missing/crop_disease.pt")
+    image = io.BytesIO()
+    Image.new("RGB", (64, 64), color="green").save(image, format="PNG")
+    response = client.post(
+        "/api/v1/crop-health/diagnose-image",
+        headers=headers,
+        data={"crop_name": "Tomato"},
+        files={"file": ("leaf.png", image.getvalue(), "image/png")},
+    )
+    assert response.status_code == 503
+    assert response.json()["error_code"] == "DISEASE_MODEL_NOT_FOUND"
+
+
+def test_configured_disease_model_is_preloaded_once(monkeypatch):
+    from app.services import disease_service
+
+    calls = []
+    monkeypatch.setattr(settings, "DISEASE_MODEL_PATH", str(Path(__file__).resolve()))
+    monkeypatch.setattr(settings, "DISEASE_ALLOWED_LABELS", ["Test class"])
+    monkeypatch.setattr(disease_service, "_load_model", lambda path: calls.append(path))
+
+    assert disease_service.preload_disease_model() is True
+    assert len(calls) == 1
 
 
 def test_assistant_requires_provider_and_conversation_owner(client, register_farmer):
