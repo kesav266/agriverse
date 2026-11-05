@@ -8,29 +8,29 @@ from app.core.logging import logger
 
 db_url = settings.effective_database_url
 
-# Configure database engine appropriately for SQLite vs PostgreSQL / Supabase
-connect_args = {}
-engine_kwargs = {"echo": False}
+def _create_engine_for_url(target_url: str):
+    connect_args = {}
+    engine_kwargs = {"echo": False}
+    if target_url.startswith("sqlite"):
+        connect_args["check_same_thread"] = False
+        if target_url in {"sqlite://", "sqlite:///:memory:"}:
+            engine_kwargs["poolclass"] = StaticPool
+    else:
+        # PostgreSQL / Supabase pooling options
+        engine_kwargs.update({
+            "pool_pre_ping": True,
+            "pool_recycle": 300,
+        })
+    eng = create_engine(target_url, connect_args=connect_args, **engine_kwargs)
+    if eng.dialect.name == "sqlite":
+        @event.listens_for(eng, "connect")
+        def enable_sqlite_foreign_keys(connection, _record):
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+    return eng
 
-if db_url.startswith("sqlite"):
-    connect_args["check_same_thread"] = False
-    if db_url in {"sqlite://", "sqlite:///:memory:"}:
-        engine_kwargs["poolclass"] = StaticPool
-else:
-    # PostgreSQL / Supabase pooling options
-    engine_kwargs.update({
-        "pool_pre_ping": True,
-        "pool_recycle": 300,
-    })
-
-engine = create_engine(db_url, connect_args=connect_args, **engine_kwargs)
-
-if engine.dialect.name == "sqlite":
-    @event.listens_for(engine, "connect")
-    def enable_sqlite_foreign_keys(connection, _record):
-        cursor = connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
+engine = _create_engine_for_url(db_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -68,20 +68,43 @@ def check_db_connection() -> dict:
             "dialect": engine.dialect.name
         }
 
+def _sync_sqlite_columns(eng):
+    """Preserve compatibility with the two optional yield-history columns."""
+    inspector = inspect(eng)
+    table_name = "yield_estimates"
+    if not inspector.has_table(table_name):
+        return
+
+    existing_cols = {column["name"] for column in inspector.get_columns(table_name)}
+    legacy_columns = {"farmer_id": "VARCHAR(36)", "crop_name": "VARCHAR(100)"}
+    with eng.begin() as connection:
+        for column_name, column_type in legacy_columns.items():
+            if column_name not in existing_cols:
+                logger.info(
+                    "Migrating SQLite schema: adding %s (%s) to %s",
+                    column_name,
+                    column_type,
+                    table_name,
+                )
+                connection.execute(
+                    text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+                )
+
 def init_db():
     """Initialize SQLite development storage or verify a migrated PostgreSQL schema."""
+    global engine, SessionLocal
     try:
         # Import domain models so metadata knows all tables
         import app.models.domain  # noqa: F401
         if engine.dialect.name == "sqlite":
             Base.metadata.create_all(bind=engine)
-            columns = {column["name"] for column in inspect(engine).get_columns("yield_estimates")}
-            with engine.begin() as connection:
-                if "farmer_id" not in columns:
-                    connection.execute(text("ALTER TABLE yield_estimates ADD COLUMN farmer_id VARCHAR(36)"))
-                if "crop_name" not in columns:
-                    connection.execute(text("ALTER TABLE yield_estimates ADD COLUMN crop_name VARCHAR(100)"))
+            _sync_sqlite_columns(engine)
         else:
+            # An explicit PostgreSQL configuration must fail visibly when unavailable;
+            # silently switching databases could split reads and writes across stores.
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+
             required_tables = {
                 "profiles",
                 "farms",
