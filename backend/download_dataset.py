@@ -3,11 +3,13 @@
 import argparse
 import hashlib
 import json
+import re
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from random import Random
-from shutil import copy2, copytree
+from shutil import copy2
 
 DATASET_HANDLE = "emmarex/plantdisease"
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -38,20 +40,76 @@ def download_source() -> Path:
         except RuntimeError:
             pass
 
+    cached_source = _completed_cached_source()
+    if cached_source is not None:
+        return cached_source
+
     try:
         import kagglehub
     except ImportError as exc:
         raise RuntimeError("Install backend/requirements.txt before downloading PlantVillage.") from exc
 
-    SOURCE_ROOT.mkdir(parents=True, exist_ok=True)
-    downloaded_path = Path(kagglehub.dataset_download(DATASET_HANDLE))
-    copied_dataset = SOURCE_ROOT / "downloaded"
-    if copied_dataset.exists():
-        raise RuntimeError(
-            f"Downloaded dataset directory already exists but has no detected class folders: {copied_dataset}"
-        )
-    copytree(downloaded_path, copied_dataset)
-    return SOURCE_ROOT
+    # KaggleHub may leave a partial archive in its cache after a network failure.
+    # Its normal cache lookup resumes an incomplete transfer; later forced attempts
+    # bypass a stale completed-cache marker. Never copy an archive or a partially
+    # extracted tree into SOURCE_ROOT and mistake it for the dataset.
+    attempts = 3
+    last_error: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            downloaded_path = Path(
+                kagglehub.dataset_download(DATASET_HANDLE, force_download=attempt > 1)
+            )
+            class_root = find_class_root(downloaded_path)
+            collect_class_images(class_root)
+            return downloaded_path
+        except Exception as exc:
+            last_error = exc
+            if attempt < attempts:
+                delay = 2 ** (attempt - 1)
+                print(
+                    f"PlantVillage download/validation attempt {attempt}/{attempts} failed "
+                    f"({type(exc).__name__}); retrying in {delay}s."
+                )
+                time.sleep(delay)
+
+    raise RuntimeError(
+        f"PlantVillage was not downloaded and validated after {attempts} attempts "
+        f"({type(last_error).__name__ if last_error else 'unknown error'}). "
+        "Check Kaggle access/authentication and network connectivity. Existing partial "
+        "files were left untouched; no dataset manifest was written."
+    ) from last_error
+
+
+def _completed_cached_source() -> Path | None:
+    """Use a complete KaggleHub cache offline when its marker and contents validate."""
+    try:
+        from kagglehub.cache import Cache
+        from kagglehub.config import get_cache_folder
+        from kagglehub.handle import parse_dataset_handle
+    except ImportError:
+        return None
+
+    owner, dataset_name = DATASET_HANDLE.split("/", 1)
+    dataset_cache = Path(get_cache_folder()) / "datasets" / owner / dataset_name
+    versions = sorted(
+        (int(marker.stem), marker)
+        for marker in dataset_cache.glob("*.complete")
+        if marker.stem.isdigit()
+    )
+    cache = Cache()
+    for version, _ in reversed(versions):
+        handle = parse_dataset_handle(f"{DATASET_HANDLE}/versions/{version}")
+        cached_path = cache.load_from_cache(handle)
+        if not cached_path:
+            continue
+        try:
+            class_root = find_class_root(Path(cached_path))
+            collect_class_images(class_root)
+            return Path(cached_path)
+        except RuntimeError:
+            continue
+    return None
 
 
 def find_class_root(source_root: Path) -> Path:
@@ -67,7 +125,7 @@ def find_class_root(source_root: Path) -> Path:
             candidates.append((image_class_count, directory))
     if not candidates:
         raise RuntimeError("Could not find PlantVillage class folders containing images.")
-    return max(candidates, key=lambda item: item[0])[1]
+    return max(candidates, key=lambda item: (item[0], len(item[1].parts)))[1]
 
 
 def collect_class_images(class_root: Path) -> dict[str, list[Path]]:
@@ -151,6 +209,31 @@ def prepare_split(
     }
 
 
+def validate_prepared_split(manifest: dict) -> None:
+    """Check generated class counts and that duplicate image hashes stay in one split."""
+    expected_classes = set(manifest["class_names"])
+    split_hashes: dict[str, set[str]] = {"train": set(), "val": set()}
+    for split in ("train", "val"):
+        split_root = CLASSIFICATION_ROOT / split
+        actual_classes = {path.name for path in split_root.iterdir() if path.is_dir()}
+        if actual_classes != expected_classes:
+            raise RuntimeError(f"The {split} split class directories do not match the manifest.")
+        for class_name in expected_classes:
+            class_dir = split_root / class_name
+            images = [path for path in class_dir.iterdir() if is_image(path)]
+            if len(images) != manifest["split_counts"][split].get(class_name):
+                raise RuntimeError(
+                    f"The {split} image count for class {class_name!r} does not match the manifest."
+                )
+            for image_path in images:
+                suffix = image_path.stem.rsplit("__", 1)[-1]
+                if not re.fullmatch(r"[0-9a-f]{12}", suffix):
+                    raise RuntimeError(f"Generated image has no source hash suffix: {image_path.name}")
+                split_hashes[split].add(suffix)
+    if split_hashes["train"] & split_hashes["val"]:
+        raise RuntimeError("Duplicate image hashes were found in both train and validation splits.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--validation-fraction", type=float, default=0.2)
@@ -166,6 +249,7 @@ def main() -> None:
     class_root = find_class_root(source_root)
     class_images = collect_class_images(class_root)
     manifest = prepare_split(class_images, args.validation_fraction, args.seed)
+    validate_prepared_split(manifest)
     MANIFEST_PATH.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     print(f"PlantVillage source: {source_root}")
     print(f"Detected class root: {class_root}")

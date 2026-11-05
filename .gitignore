@@ -11,6 +11,7 @@
 *.log
 backend/datasets/
 backend/models/
+*.pt
 
 # Python
 __pycache__/

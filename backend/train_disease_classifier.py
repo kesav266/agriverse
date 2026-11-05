@@ -32,13 +32,18 @@ def model_labels(model) -> list[str]:
     return labels
 
 
-def write_env_configuration(model_path: Path, labels: list[str], env_path: Path) -> None:
+def write_env_configuration(
+    model_path: Path,
+    labels: list[str],
+    env_path: Path,
+    snippet_path: Path = ENV_SNIPPET_PATH,
+) -> None:
     path_value = model_path.resolve().as_posix()
     configuration = (
         f"DISEASE_MODEL_PATH={path_value}\n"
         f"DISEASE_ALLOWED_LABELS={json.dumps(labels)}\n"
     )
-    ENV_SNIPPET_PATH.write_text(configuration, encoding="utf-8")
+    snippet_path.write_text(configuration, encoding="utf-8")
     if not env_path.exists():
         raise RuntimeError(f"Requested environment file does not exist: {env_path}")
 
@@ -66,6 +71,13 @@ def main() -> None:
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--imgsz", type=int, default=224)
     parser.add_argument("--batch", default="auto", help="auto, -1, or a positive batch size")
+    parser.add_argument("--workers", type=int, default=2, help="data loader workers (2 is suitable for CPU/16 GB RAM)")
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=MODEL_PATH,
+        help="output weights path; existing weights are never replaced without --overwrite",
+    )
     parser.add_argument("--configure-env", type=Path, help="Explicitly update this .env after training")
     parser.add_argument(
         "--configure-existing",
@@ -81,60 +93,69 @@ def main() -> None:
         raise RuntimeError("Install backend/requirements.txt before training.") from exc
 
     if args.configure_existing:
-        if not MODEL_PATH.is_file():
-            parser.error(f"No trained model found at {MODEL_PATH}.")
+        if not args.output.is_file():
+            parser.error(f"No trained model found at {args.output}.")
         if not args.configure_env:
             parser.error("--configure-existing requires --configure-env <path-to-.env>.")
-        labels = model_labels(YOLO(str(MODEL_PATH)))
-        LABELS_PATH.write_text(json.dumps(labels, indent=2), encoding="utf-8")
-        write_env_configuration(MODEL_PATH, labels, args.configure_env)
-        print(f"Verified labels: {LABELS_PATH}")
+        labels_path = args.output.with_name(f"{args.output.stem}_labels.json")
+        env_snippet_path = args.output.with_name(f"{args.output.stem}.env")
+        labels = model_labels(YOLO(str(args.output)))
+        labels_path.write_text(json.dumps(labels, indent=2), encoding="utf-8")
+        write_env_configuration(args.output, labels, args.configure_env, env_snippet_path)
+        print(f"Verified labels: {labels_path}")
         print(f"Updated runtime configuration: {args.configure_env}")
         return
 
     if not (args.data / "train").is_dir() or not (args.data / "val").is_dir():
         parser.error("Prepared classification data must contain train/ and val/ class directories.")
-    if args.epochs != 30 or args.imgsz != 224:
-        parser.error("This project requires --epochs 30 and --imgsz 224 for the PlantVillage baseline.")
-    if MODEL_PATH.exists() and not args.overwrite:
-        parser.error(f"{MODEL_PATH} already exists; use --overwrite only after reviewing the new model.")
+    if args.epochs < 1 or args.imgsz != 224:
+        parser.error("--epochs must be positive and --imgsz must remain 224 for this baseline.")
+    if args.workers < 0:
+        parser.error("--workers must be zero or a positive integer.")
+    if args.output.exists() and not args.overwrite:
+        parser.error(f"{args.output} already exists; use --overwrite only after reviewing the new model.")
 
     device, automatic_batch = choose_hardware()
     batch = automatic_batch if args.batch == "auto" else int(args.batch)
     if batch == 0 or batch < -1:
         parser.error("--batch must be auto, -1, or a positive integer.")
 
-    MODELS_ROOT.mkdir(parents=True, exist_ok=True)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
     model = YOLO("yolo26n-cls.pt")
+    run_name = f"{args.output.stem}_training_{args.epochs}ep"
     model.train(
         data=str(args.data),
-        epochs=30,
+        epochs=args.epochs,
         imgsz=224,
         batch=batch,
         device=device,
+        workers=args.workers,
+        cache=False,
         project=str(MODELS_ROOT),
-        name="crop_disease_training",
-        exist_ok=True,
+        name=run_name,
+        exist_ok=False,
     )
-    best_weights = MODELS_ROOT / "crop_disease_training" / "weights" / "best.pt"
+    best_weights = MODELS_ROOT / run_name / "weights" / "best.pt"
     if not best_weights.is_file():
         raise RuntimeError(f"Training completed without best weights at {best_weights}")
 
-    copy2(best_weights, MODEL_PATH)
-    trained_model = YOLO(str(MODEL_PATH))
+    copy2(best_weights, args.output)
+    trained_model = YOLO(str(args.output))
     labels = model_labels(trained_model)
-    LABELS_PATH.write_text(json.dumps(labels, indent=2), encoding="utf-8")
-    ENV_SNIPPET_PATH.write_text(
-        f"DISEASE_MODEL_PATH={MODEL_PATH.resolve().as_posix()}\n"
+    labels_path = args.output.with_name(f"{args.output.stem}_labels.json")
+    env_snippet_path = args.output.with_name(f"{args.output.stem}.env")
+    labels_path.write_text(json.dumps(labels, indent=2), encoding="utf-8")
+    env_snippet_path.write_text(
+        f"DISEASE_MODEL_PATH={args.output.resolve().as_posix()}\n"
         f"DISEASE_ALLOWED_LABELS={json.dumps(labels)}\n",
         encoding="utf-8",
     )
     if args.configure_env:
-        write_env_configuration(MODEL_PATH, labels, args.configure_env)
+        write_env_configuration(args.output, labels, args.configure_env, env_snippet_path)
 
-    print(f"Best model: {MODEL_PATH}")
-    print(f"Verified labels: {LABELS_PATH}")
-    print(f"Runtime configuration snippet: {ENV_SNIPPET_PATH}")
+    print(f"Best model: {args.output}")
+    print(f"Verified labels: {labels_path}")
+    print(f"Runtime configuration snippet: {env_snippet_path}")
 
 
 if __name__ == "__main__":

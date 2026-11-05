@@ -13,6 +13,7 @@ from app.core.logging import logger
 from app.models.schemas import DiagnosisResponse, DiseasePrediction
 
 _MODEL_LOCK = threading.Lock()
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
 _CAUTION_EN = (
     "This model output is a screening aid, not a confirmed diagnosis. Ask a local agricultural "
     "officer to inspect uncertain or serious symptoms. Do not apply chemicals based on this result "
@@ -25,12 +26,21 @@ _CAUTION_TE = (
 )
 
 
+def _configured_model_path() -> Path | None:
+    configured_path = settings.DISEASE_MODEL_PATH
+    if not configured_path or not configured_path.strip():
+        return None
+    model_path = Path(configured_path).expanduser()
+    if not model_path.is_absolute():
+        model_path = _BACKEND_ROOT / model_path
+    return model_path.resolve()
+
 def disease_model_configured() -> bool:
     """Report whether configured weights and an explicit label allow-list are present."""
-    model_path = settings.DISEASE_MODEL_PATH
+    model_path = _configured_model_path()
     return bool(
         model_path
-        and Path(model_path).is_file()
+        and model_path.is_file()
         and any(label.strip() for label in settings.DISEASE_ALLOWED_LABELS)
     )
 
@@ -41,7 +51,7 @@ def preload_disease_model() -> bool:
         return False
 
     try:
-        _load_model(str(Path(settings.DISEASE_MODEL_PATH).resolve()))
+        _load_model(str(_configured_model_path()))
         return True
     except ImportError:
         logger.warning("Crop-disease model is configured but the YOLO runtime is unavailable")
@@ -241,7 +251,7 @@ def _detection_response(result, crop_name: str, farmer_id: str) -> DiagnosisResp
 
 def diagnose_image(data: bytes, content_type: str | None, crop_name: str, farmer_id: str) -> DiagnosisResponse:
     image = validate_crop_image(data, content_type)
-    model_path = settings.DISEASE_MODEL_PATH
+    model_path = _configured_model_path()
     if not model_path:
         raise AgriVerseException(
             "Crop diagnosis is unavailable until DISEASE_MODEL_PATH points to a trained YOLO model.",

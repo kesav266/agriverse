@@ -327,6 +327,15 @@ def test_configured_disease_model_is_preloaded_once(monkeypatch):
     assert len(calls) == 1
 
 
+def test_relative_disease_model_path_is_anchored_to_backend(monkeypatch):
+    from app.services import disease_service
+
+    monkeypatch.setattr(settings, "DISEASE_MODEL_PATH", "models/crop_disease.pt")
+    expected = Path(disease_service.__file__).resolve().parents[2] / "models" / "crop_disease.pt"
+
+    assert disease_service._configured_model_path() == expected.resolve()
+
+
 def test_assistant_requires_provider_and_conversation_owner(client, register_farmer):
     _, headers, _, _ = register_farmer("Assistant Farmer")
     query = {"query": "How can I check soil moisture?", "language": "en"}

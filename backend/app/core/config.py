@@ -1,4 +1,5 @@
 import secrets
+from pathlib import Path
 from typing import List, Optional
 
 from pydantic import Field, field_validator, model_validator
@@ -45,7 +46,9 @@ class Settings(BaseSettings):
     TRUSTED_HOSTS: List[str] = ["localhost", "127.0.0.1", "testserver"]
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        # Resolve the backend environment file independently of the process CWD.
+        # This keeps `uvicorn app.main:app` and module-based launchers consistent.
+        env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

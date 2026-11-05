@@ -36,8 +36,8 @@ AgriVerseAI/
 | Weather | Configurable OpenWeather geocoding, current observation, and provider forecast; missing credentials/errors are shown as unavailable |
 | Irrigation | Authenticated field-assessment guidance; no unsupported water quantities |
 | Yield and profit | Persisted arithmetic estimate from farmer-entered yield, price, and costs; no yield model or market feed |
-| Disease screening | Validated in-memory image upload and YOLO adapter; no trained weights or verified class allow-list are present, so real diagnosis remains unavailable |
-| Farming assistant | Configurable Gemini Interactions API and private persisted conversations; current configured credential was rejected during a live check; no trusted RAG corpus is configured |
+| Disease screening | Authenticated, validated in-memory image inference and persisted farmer-scoped history. Local model artifacts are machine-only; deployment still requires a reviewed model, matching exact labels, validation evidence, and an explicit artifact mount. |
+| Farming assistant | Configurable Gemini Interactions API and private persisted conversations; a minimal live request returned HTTP 200, but conversation persistence and production availability are not verified; no trusted RAG corpus is configured |
 | History | Farmer-scoped yield, assistant conversation, diagnosis, crop-cycle, and field-observation history are available through the app and owner-scoped APIs |
 
 These are implementation descriptions; refer to the latest test/build results and manual setup status before deployment. No production database migration or external deployment is performed by this repository setup.
@@ -125,7 +125,7 @@ OpenAPI is served at `http://localhost:8000/api/v1/docs`. `/health/live` reports
 
 Crop cycles use `GET /api/v1/crop-cycles/farm/{farm_id}?skip=0&limit=50`, `POST /api/v1/crop-cycles`, `PATCH /api/v1/crop-cycles/{cycle_id}`, and `DELETE /api/v1/crop-cycles/{cycle_id}`. Field observations use `GET` and `POST /api/v1/farm-observations/crop-cycle/{cycle_id}?skip=0&limit=50` and `PATCH`/`DELETE /api/v1/farm-observations/{observation_id}`. These routes validate inputs, paginate lists, persist records, and enforce ownership through the authenticated farmer. Deleting a cycle removes its observations by FK cascade; estimate records are retained with their cycle reference set to NULL.
 
-For optional YOLO inference, install `python -m pip install -r requirements-ml.txt`, place compatible trained YOLO weights in private backend storage outside the repository, and set `DISEASE_MODEL_PATH` to their absolute path. Set `DISEASE_ALLOWED_LABELS` to a JSON array of exact class names verified against that model's training metadata (for example, `["verified-class-from-model"]`; do not copy this example as a label). Restart the backend, confirm `/health/ready` reports `disease_model_configured: true`, then run a reviewed known-image inference test before enabling farmer access. Unknown or unmapped model classes remain uncertain. No weights or disease label mapping are bundled.
+For YOLO inference, install `python -m pip install -r requirements-ml.txt`, provide compatible reviewed weights in private backend storage, and set `DISEASE_MODEL_PATH` plus `DISEASE_ALLOWED_LABELS` to the model's exact class names. The backend reads `backend/.env` independently of the launch directory and resolves relative model paths from `backend/`. A configured model is not a validation claim: verify holdout metrics and known-image inference before enabling farmers. Unknown or unmapped labels remain uncertain. Model weights, dataset images, and local environment files are excluded from Git.
 
 For the PlantVillage YOLO classification workflow, including safe Kaggle download, leakage-safe 80:20 split preparation, training, and model-derived runtime labels, see `backend/CROP_DISEASE_SETUP.md`.
 
@@ -141,10 +141,16 @@ The Android emulator uses `10.0.2.2` to reach the host machine. Development Andr
 
 ### Run the complete local stack
 
-From the repository root, the PowerShell launcher starts the FastAPI backend, verifies the configured database connection, and then runs Flutter. It stops the backend when Flutter exits:
+The PowerShell launcher starts the FastAPI backend, verifies the configured database connection, and then runs Flutter. It stops the backend when Flutter exits. Run it from the repository root:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run-all.ps1
+```
+
+If your current directory is `backend`, invoke the root-level script with a relative parent path:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File ..\run-all.ps1
 ```
 
 This opens the web app in Chrome. To run on an already-started Android emulator or connected Android device, use:
@@ -168,7 +174,7 @@ flutter analyze
 flutter test
 ```
 
-Backend automated tests use isolated SQLite and controlled provider/model mocks; they do not use the configured production database. Flutter tests exercise widget/state behavior and API request contracts with mocked HTTP. Live checks in this workspace reached OpenWeather and Gemini, but OpenWeather rejected the configured credential and Gemini returned Google `API_KEY_INVALID`; neither live provider flow is verified as working. There is no live PostgreSQL migration test.
+Backend automated tests use isolated SQLite and controlled provider/model mocks; they do not use the configured production database. Flutter tests exercise widget/state behavior and API request contracts with mocked HTTP. `/health/ready` reports whether provider credentials are present, not whether provider accounts accept them. Current live-provider status and deployment checks are recorded in `PROJECT_COMPLETION_REPORT.md`. No live PostgreSQL migration has been run from this workspace.
 
 ## Android release build and signing
 
@@ -230,4 +236,4 @@ Use a CDN or HTTPS web host to publish `frontend/build/web`. For Android, use th
 - Static Flutter UI text is translated into English, Telugu, and Hindi. Provider generated answers depend on the configured model's actual language capability; Hindi output has not been live-verified in this workspace.
 - Supabase custom-password accounts use the backend auth and a private backend database connection; the Flutter app does not receive Supabase service-role credentials.
 - Review release branding, launcher artwork, Android signing, network URL, migration status, and provider accounts before store distribution.
-- This checkout has no production backend URL or hosting credentials. Its current OpenWeather credential was rejected, Gemini reports `API_KEY_INVALID`, and no disease model/label set is installed. A signed release requires the user's release keystore and protected signing credentials.
+- This checkout has no production backend URL, hosting credentials, or Android release keystore. The local PlantVillage model candidate and training state are machine-only and are not production-approved. See `PROJECT_COMPLETION_REPORT.md` for current metrics and unresolved actions.

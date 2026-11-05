@@ -18,28 +18,32 @@ Run from `backend/` with Python 3.11 or newer:
 .\.venv\Scripts\python.exe download_dataset.py
 ```
 
-The script downloads `emmarex/plantdisease` only when `backend/datasets/PlantVillage/source/` is empty. It inspects the downloaded directories to find the actual class folders, retains their exact names, copies data into:
+The script first reuses an existing valid source tree or a complete KaggleHub cache. Otherwise, it retries the download up to three times and lets KaggleHub resume partial transfers where supported. It validates that class directories contain images before preparing a split. A stale file such as `source/1.archive` is never treated as a dataset or copied over the completed cache. The prepared output is:
 
 ```text
 backend/datasets/PlantVillage/
-  source/downloaded/      # cached Kaggle download copied locally; never deleted by the script
+  source/                 # optional manually supplied source data
   classification/
     train/<actual class name>/
     val/<actual class name>/
   manifest.json
 ```
 
-The split is deterministic (`seed=2026`), targets 80:20 train/validation data, and assigns duplicate image hashes to one split only. The generated `manifest.json` records the discovered class names and image counts. The script refuses to overwrite an existing generated split; remove only the generated `classification/` directory manually if you deliberately need a rebuilt split.
+The extracted archive keeps an outer `PlantVillage/PlantVillage/` directory. Root discovery checks direct class folders and chooses the deeper path on equal class-count candidates so a parent directory cannot become a bogus class label. The split is deterministic (`seed=2026`), targets 80:20 train/validation data, and assigns duplicate image hashes to one split only. Before writing `manifest.json`, the script validates exact class counts, non-empty train/validation folders, generated hash suffixes, and split separation. It refuses to overwrite an existing generated split.
 
 ## 3. Train the model
 
 Training can require a CUDA GPU and substantial disk/RAM. The script selects CUDA with Ultralytics automatic batch sizing when available, uses a small batch on Apple Silicon, and uses batch size 8 on CPU. CPU training is supported but may be slow.
 
 ```powershell
-.\.venv\Scripts\python.exe train_disease_classifier.py
+# Preserve any existing model and train a reviewable candidate (CPU, 16 GB RAM).
+.\.venv\Scripts\python.exe train_disease_classifier.py `
+  --output models/crop_disease_candidate.pt --epochs 5 --batch 32 --workers 2
 ```
 
-This always trains `yolo26n-cls.pt` for 30 epochs at image size 224. On success it creates ignored local artifacts:
+The default remains 30 epochs. On the available CPU, batch size 8 measured roughly 45 minutes per epoch; batch size 32 is faster and uses two data workers without caching the dataset in RAM. The current five-epoch run is a hardware-bounded candidate, not a production validation. Increase to 30 epochs on a machine that can finish the run in a practical time, then compare the completed validation results before promotion.
+
+By default, the script trains `yolo26n-cls.pt` for 30 epochs at image size 224; `--epochs` can be changed for a bounded candidate run. On success it creates ignored local artifacts:
 
 ```text
 backend/models/crop_disease.pt
@@ -63,7 +67,7 @@ To configure an already-trained, reviewed `backend/models/crop_disease.pt` witho
 .\.venv\Scripts\python.exe train_disease_classifier.py --configure-existing --configure-env .env
 ```
 
-Training refuses to overwrite `backend/models/crop_disease.pt` by default. If you have reviewed a replacement model, add `--overwrite --configure-env .env`.
+Training refuses to overwrite the selected output weights by default. Keep the candidate path until its metrics and known-image behavior have been reviewed. Promotion to `crop_disease.pt` and changes to `.env` are separate operator actions.
 
 The generated configuration contains the absolute model path and a JSON `DISEASE_ALLOWED_LABELS` array taken directly from that model. For Docker or another host, mount the reviewed model outside the image and copy those two generated values into the deployment secret/configuration system.
 
@@ -79,4 +83,4 @@ The response includes `detected_disease`, `confidence_score`, and `top_predictio
 
 ## Data and model handling
 
-`backend/datasets/` and `backend/models/` are ignored by Git. Do not commit PlantVillage images, trained weights, Kaggle credentials, generated `.env` files, or provider/database credentials. Confirm the PlantVillage dataset license and intended-use constraints before any public or commercial deployment.
+`backend/datasets/`, `backend/models/`, and `*.pt` are ignored by Git. Do not commit PlantVillage images, trained weights, Kaggle credentials, generated `.env` files, or provider/database credentials. The [Kaggle dataset listing currently marks its license as Unknown](https://www.kaggle.com/datasets/emmarex/plantdisease); obtain rights clarification before redistribution or public/commercial use.
