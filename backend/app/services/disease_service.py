@@ -25,7 +25,6 @@ _CAUTION_TE = (
     "రసాయనాలు వాడకండి; అనుమతించిన ఉత్పత్తి లేబుల్‌ను అనుసరించండి."
 )
 
-
 def _configured_model_path() -> Path | None:
     configured_path = settings.DISEASE_MODEL_PATH
     if not configured_path or not configured_path.strip():
@@ -34,6 +33,7 @@ def _configured_model_path() -> Path | None:
     if not model_path.is_absolute():
         model_path = _BACKEND_ROOT / model_path
     return model_path.resolve()
+
 
 def disease_model_configured() -> bool:
     """Report whether configured weights and an explicit label allow-list are present."""

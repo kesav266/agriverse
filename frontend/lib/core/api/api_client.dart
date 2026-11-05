@@ -143,8 +143,21 @@ class ApiClient {
   Future<Map<String, dynamic>> getWeather(String district) =>
       _getMap('/weather/${Uri.encodeComponent(district)}');
 
-  Future<List<dynamic>> getCropRecommendations(String farmId) =>
-      _getList('/crop-recommendations/${Uri.encodeComponent(farmId)}');
+  Future<List<dynamic>> getCropRecommendations(
+    String farmId, {
+    String season = 'kharif',
+    String availableWater = 'medium',
+  }) {
+    final query = Uri(
+      queryParameters: {
+        'season': season,
+        'available_water': availableWater,
+      },
+    ).query;
+    return _getList(
+      '/crop-recommendations/${Uri.encodeComponent(farmId)}?$query',
+    );
+  }
 
   Future<List<dynamic>> evaluateCropRecommendations(
     Map<String, dynamic> payload,

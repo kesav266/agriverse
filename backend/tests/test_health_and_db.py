@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.core.config import Settings
-from app.db.database import check_db_connection
+from app.db.database import Base, _sync_sqlite_columns, check_db_connection
 
 
 def test_database_connection_uses_isolated_sqlite_for_tests():
@@ -10,6 +10,23 @@ def test_database_connection_uses_isolated_sqlite_for_tests():
     assert result["status"] == "connected"
     assert result["dialect"] == "sqlite"
     assert result["latency_ms"] >= 0
+
+
+def test_sqlite_schema_sync_only_adds_legacy_optional_yield_columns():
+    from sqlalchemy import create_engine, inspect, text
+
+    eng = create_engine("sqlite://")
+    with eng.begin() as connection:
+        connection.execute(text("CREATE TABLE legacy_example (id VARCHAR(36) PRIMARY KEY)"))
+        connection.execute(text("CREATE TABLE yield_estimates (id VARCHAR(36) PRIMARY KEY)"))
+
+    _sync_sqlite_columns(eng)
+
+    assert {column["name"] for column in inspect(eng).get_columns("legacy_example")} == {"id"}
+    assert {column["name"] for column in inspect(eng).get_columns("yield_estimates")} == {
+        "id", "farmer_id", "crop_name"
+    }
+    eng.dispose()
 
 
 def test_health_reports_configuration_without_exposing_credentials(client):

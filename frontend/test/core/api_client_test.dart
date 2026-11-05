@@ -137,6 +137,29 @@ void main() {
     },
   );
 
+  test('crop recommendation filters are encoded as API query parameters', () async {
+    http.Request? captured;
+    final api = ApiClient(
+      client: MockClient((request) async {
+        captured = request;
+        return http.Response('[]', 200);
+      }),
+    );
+
+    await api.getCropRecommendations(
+      'farm/one',
+      season: 'rabi & summer',
+      availableWater: 'rainfed',
+    );
+
+    expect(captured!.url.path, '/api/v1/crop-recommendations/farm%2Fone');
+    expect(captured!.url.queryParameters, {
+      'season': 'rabi & summer',
+      'available_water': 'rainfed',
+    });
+    api.dispose();
+  });
+
   test('observation response model reads database timestamps', () {
     final observation = FarmObservation.fromJson({
       'id': 'observation-1',

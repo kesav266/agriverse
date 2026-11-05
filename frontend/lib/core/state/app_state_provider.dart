@@ -279,6 +279,7 @@ class AppStateProvider extends ChangeNotifier {
       _farms = [];
       farmsState = ApiResponse.error(_errorMessage(error));
     }
+    notifyListeners();
   }
 
   Future<void> _loadWeather() async {
@@ -296,6 +297,7 @@ class AppStateProvider extends ChangeNotifier {
     } catch (error) {
       weatherState = ApiResponse.error(_errorMessage(error));
     }
+    notifyListeners();
   }
 
   Future<void> _loadRecommendationsAndActiveCycle() async {

@@ -121,14 +121,13 @@ class AssistantService:
         reply = None
         response = None
         try:
-            gemini_timeout = min(float(settings.GEMINI_REQUEST_TIMEOUT_SECONDS), 7.0)
+            gemini_timeout = float(settings.GEMINI_REQUEST_TIMEOUT_SECONDS)
             response = httpx.post(
                 "https://generativelanguage.googleapis.com/v1beta/interactions",
                 headers={
                     "x-goog-api-key": settings.GEMINI_AI_API_KEY,
                     "Content-Type": "application/json",
                 },
-                params={"key": settings.GEMINI_AI_API_KEY},
                 json={
                     "model": settings.GEMINI_MODEL,
                     "system_instruction": SYSTEM_INSTRUCTION,
@@ -148,7 +147,6 @@ class AssistantService:
                             "x-goog-api-key": settings.GEMINI_AI_API_KEY,
                             "Content-Type": "application/json",
                         },
-                        params={"key": settings.GEMINI_AI_API_KEY},
                         json={
                             "model": "gemini-3.5-flash-lite",
                             "system_instruction": SYSTEM_INSTRUCTION,
@@ -156,7 +154,7 @@ class AssistantService:
                             "store": False,
                             "generation_config": {"max_output_tokens": 512},
                         },
-                        timeout=min(gemini_timeout, 4.0),
+                        timeout=min(gemini_timeout, 8.0),
                     )
                     if fallback_resp.status_code == 200:
                         response = fallback_resp

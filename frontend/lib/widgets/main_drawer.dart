@@ -197,6 +197,7 @@ class MainDrawer extends StatelessWidget {
     Color? color,
   }) {
     final effectiveColor = color ?? AppColors.forestGreen;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ListTile(
       leading: Container(
@@ -212,7 +213,9 @@ class MainDrawer extends StatelessWidget {
         style: TextStyle(
           fontWeight: FontWeight.w700,
           fontSize: 14.5,
-                  color: color ?? (isDark ? AppColors.textDarkPrimary : AppColors.textPrimary),
+          color:
+              color ??
+              (isDark ? AppColors.textDarkPrimary : AppColors.textPrimary),
         ),
       ),
       onTap: () {

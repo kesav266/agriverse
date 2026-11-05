@@ -258,6 +258,10 @@ def test_crop_classification_returns_supported_top_predictions(client, register_
     body = response.json()
     assert body["detected_disease"] == "Tomato___Early_blight"
     assert body["confidence_score"] == 0.91
+    assert body["severity"] == "Uncertain"
+    assert body["needs_expert_review"] is True
+    assert "Spray" not in body["recommended_treatment_en"]
+    assert "not a confirmed diagnosis" in body["recommended_treatment_en"]
     assert body["top_predictions"] == [
         {"label": "Tomato___Early_blight", "confidence": 0.91},
         {"label": "Tomato___healthy", "confidence": 0.07},
@@ -298,6 +302,45 @@ def test_crop_classification_rejects_unsupported_model_labels(client, register_f
     assert body["detected_disease"].startswith("Uncertain")
     assert body["confidence_score"] is None
     assert body["top_predictions"] == []
+
+
+def test_healthy_model_label_is_still_presented_as_uncertain_screening(
+    client, register_farmer, monkeypatch
+):
+    from app.services import disease_service
+
+    _, headers, _, _ = register_farmer("Healthy Label Farmer")
+    monkeypatch.setattr(settings, "DISEASE_MODEL_PATH", str(Path(__file__).resolve()))
+    monkeypatch.setattr(settings, "DISEASE_ALLOWED_LABELS", ["Tomato___healthy"])
+
+    class Probabilities:
+        top5 = [0]
+        top5conf = [0.99]
+
+    class Prediction:
+        probs = Probabilities()
+        names = {0: "Tomato___healthy"}
+
+    class MockModel:
+        def predict(self, **kwargs):
+            return [Prediction()]
+
+    monkeypatch.setattr(disease_service, "_load_model", lambda _path: MockModel())
+    image = io.BytesIO()
+    Image.new("RGB", (64, 64), color="green").save(image, format="PNG")
+    response = client.post(
+        "/api/v1/crop-health/diagnose-image",
+        headers=headers,
+        data={"crop_name": "Tomato"},
+        files={"file": ("leaf.png", image.getvalue(), "image/png")},
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["detected_disease"] == "Tomato___healthy"
+    assert body["severity"] == "Uncertain"
+    assert body["needs_expert_review"] is True
+    assert "not a confirmed diagnosis" in body["recommended_treatment_en"]
 
 
 def test_crop_diagnosis_reports_a_configured_missing_model(client, register_farmer, monkeypatch):
