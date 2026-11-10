@@ -40,3 +40,4 @@ services:
         value: "8000"
       - key: WEB_CONCURRENCY
         value: "1"
+

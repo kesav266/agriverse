@@ -40,3 +40,6 @@ frontend/android/app/build/
 *.iml
 .DS_Store
 Thumbs.db
+
+deployment/*.apk
+deployment/*.aab
