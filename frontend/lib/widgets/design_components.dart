@@ -228,6 +228,8 @@ class AnimatedActionCard extends StatefulWidget {
   final Color iconColor;
   final VoidCallback onTap;
   final Widget? trailingBadge;
+  /// Optional illustration painted in the card body above the labels.
+  final Widget? illustration;
 
   const AnimatedActionCard({
     super.key,
@@ -237,6 +239,7 @@ class AnimatedActionCard extends StatefulWidget {
     required this.iconColor,
     required this.onTap,
     this.trailingBadge,
+    this.illustration,
   });
 
   @override
@@ -318,7 +321,12 @@ class _AnimatedActionCardState extends State<AnimatedActionCard> {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            // Illustration (fills the blank space)
+            if (widget.illustration != null) ...[
+              const SizedBox(height: 10),
+              widget.illustration!,
+            ],
+            const SizedBox(height: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

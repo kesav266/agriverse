@@ -6,6 +6,7 @@ import '../../core/theme/app_radii.dart';
 import '../../core/theme/app_shadows.dart';
 import '../../widgets/app_bottom_nav.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/card_illustrations.dart';
 import '../../widgets/design_components.dart';
 import '../../widgets/main_drawer.dart';
 import '../../widgets/tts_button.dart';
@@ -678,13 +679,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       physics: const NeverScrollableScrollPhysics(),
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: state.isSimpleMode ? 2.6 : 1.15,
+                      childAspectRatio: state.isSimpleMode ? 2.6 : 0.95,
                       children: [
                         AnimatedActionCard(
                           title: state.tr('crop_health'),
                           subtitle: state.tr('screen_crop_image'),
                           icon: Icons.camera_alt_rounded,
                           iconColor: const Color(0xFFE65100),
+                          illustration: state.isSimpleMode
+                              ? null
+                              : const CardIllustration(
+                                  type: CardIllustrationType.cropHealth,
+                                  height: 90,
+                                ),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -697,6 +704,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           subtitle: state.tr('screen_crops_by_conditions'),
                           icon: Icons.psychology_rounded,
                           iconColor: AppColors.forestPine,
+                          illustration: state.isSimpleMode
+                              ? null
+                              : const CardIllustration(
+                                  type: CardIllustrationType.cropRecommendation,
+                                  height: 90,
+                                ),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -710,6 +723,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           subtitle: state.tr('forecast_and_irrigation'),
                           icon: Icons.water_drop_rounded,
                           iconColor: const Color(0xFF0284C7),
+                          illustration: state.isSimpleMode
+                              ? null
+                              : const CardIllustration(
+                                  type: CardIllustrationType.weather,
+                                  height: 90,
+                                ),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -722,6 +741,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           subtitle: state.tr('estimate_user_values'),
                           icon: Icons.calculate_rounded,
                           iconColor: const Color(0xFF7C3AED),
+                          illustration: state.isSimpleMode
+                              ? null
+                              : const CardIllustration(
+                                  type: CardIllustrationType.yieldProfit,
+                                  height: 90,
+                                ),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -735,6 +760,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           subtitle: state.tr('ask_assistant_provider'),
                           icon: Icons.support_agent_rounded,
                           iconColor: const Color(0xFF0D9488),
+                          illustration: state.isSimpleMode
+                              ? null
+                              : const CardIllustration(
+                                  type: CardIllustrationType.aiAssistant,
+                                  height: 90,
+                                ),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -747,6 +778,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           subtitle: state.tr('manage_farm_details'),
                           icon: Icons.landscape_rounded,
                           iconColor: const Color(0xFF15803D),
+                          illustration: state.isSimpleMode
+                              ? null
+                              : const CardIllustration(
+                                  type: CardIllustrationType.farmProfile,
+                                  height: 90,
+                                ),
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
