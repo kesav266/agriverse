@@ -24,7 +24,7 @@ class SectionHeader extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final titleColor = isDark
         ? AppColors.textDarkPrimary
-        : AppColors.textPrimary;
+        : const Color.fromARGB(255, 17, 244, 108);
     final subtitleColor = isDark
         ? AppColors.textDarkSecondary
         : AppColors.textSecondary;
@@ -228,8 +228,10 @@ class AnimatedActionCard extends StatefulWidget {
   final Color iconColor;
   final VoidCallback onTap;
   final Widget? trailingBadge;
-  /// Optional illustration painted in the card body above the labels.
+  /// Optional illustration painted in the card header.
   final Widget? illustration;
+  /// Optional category badge text shown over the illustration.
+  final String? badgeText;
 
   const AnimatedActionCard({
     super.key,
@@ -240,6 +242,7 @@ class AnimatedActionCard extends StatefulWidget {
     required this.onTap,
     this.trailingBadge,
     this.illustration,
+    this.badgeText,
   });
 
   @override
@@ -262,97 +265,185 @@ class _AnimatedActionCardState extends State<AnimatedActionCard> {
 
     return InkWell(
       onTap: widget.onTap,
-      borderRadius: BorderRadius.circular(20.0),
+      borderRadius: BorderRadius.circular(22.0),
       onHighlightChanged: (val) => setState(() => _isHovered = val),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(20.0),
-          border: Border.all(
-            color: _isHovered
-                ? widget.iconColor.withValues(alpha: 0.45)
-                : (isDark ? AppColors.borderDark : const Color(0xFFE8EFEA)),
-            width: _isHovered ? 1.6 : 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
+      child: AnimatedScale(
+        scale: _isHovered ? 1.02 : 1.0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(22.0),
+            border: Border.all(
               color: _isHovered
-                  ? widget.iconColor.withValues(alpha: 0.14)
-                  : (isDark
-                        ? Colors.black26
-                        : const Color(0x0A0D3D22)),
-              blurRadius: _isHovered ? 18 : 10,
-              offset: Offset(0, _isHovered ? 6 : 3),
+                  ? widget.iconColor.withValues(alpha: 0.5)
+                  : (isDark ? AppColors.borderDark : const Color(0xFFE2EBE5)),
+              width: _isHovered ? 1.8 : 1.2,
             ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(11.0),
-                  decoration: BoxDecoration(
-                    color: widget.iconColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14.0),
-                  ),
-                  child: Icon(widget.icon, color: widget.iconColor, size: 24),
-                ),
-                if (widget.trailingBadge != null)
-                  widget.trailingBadge!
-                else
-                  Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: isDark ? Colors.white10 : const Color(0xFFF3F7F4),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 15,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-              ],
-            ),
-            // Illustration (fills the blank space)
-            if (widget.illustration != null) ...[
-              const SizedBox(height: 10),
-              widget.illustration!,
+            boxShadow: [
+              BoxShadow(
+                color: _isHovered
+                    ? widget.iconColor.withValues(alpha: 0.16)
+                    : (isDark
+                          ? Colors.black26
+                          : const Color(0x0C0D3D22)),
+                blurRadius: _isHovered ? 20 : 12,
+                offset: Offset(0, _isHovered ? 7 : 4),
+              ),
             ],
-            const SizedBox(height: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.title,
-                  style: TextStyle(
-                    fontSize: 15.0,
-                    fontWeight: FontWeight.w700,
-                    color: titleColor,
-                    letterSpacing: -0.2,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Top Visual Banner if illustration is present
+              if (widget.illustration != null)
+                Stack(
+                  children: [
+                    SizedBox(
+                      height: 112,
+                      width: double.infinity,
+                      child: widget.illustration!,
+                    ),
+                    // Frosted overlay chip for Icon + optional Badge
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x12000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(widget.icon, color: widget.iconColor, size: 16),
+                            if (widget.badgeText != null) ...[
+                              const SizedBox(width: 5),
+                              Text(
+                                widget.badgeText!,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: widget.iconColor,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Top-right Arrow Button
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          shape: BoxShape.circle,
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x12000000),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 15,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                // Simple Mode Header: Just icon + arrow row
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10.0),
+                        decoration: BoxDecoration(
+                          color: widget.iconColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        child: Icon(widget.icon, color: widget.iconColor, size: 22),
+                      ),
+                      if (widget.trailingBadge != null)
+                        widget.trailingBadge!
+                      else
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white10 : const Color(0xFFF3F7F4),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_rounded,
+                            size: 15,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  widget.subtitle,
-                  style: TextStyle(
-                    fontSize: 12.0,
-                    color: subtitleColor,
-                    height: 1.3,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+
+              // Bottom Content Body
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.title,
+                      style: TextStyle(
+                        fontSize: 15.0,
+                        fontWeight: FontWeight.w800,
+                        color: titleColor,
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      widget.subtitle,
+                      style: TextStyle(
+                        fontSize: 12.0,
+                        color: subtitleColor,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );

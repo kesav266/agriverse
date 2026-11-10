@@ -93,9 +93,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onRefresh: () => state.loadDashboardData(),
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 880),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
               // ===============================================================
               // 1. HERO FOREST GREEN HEADER (matching reference image)
               // ===============================================================
@@ -661,7 +664,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
 
               // ===============================================================
-              // 3. CORE SERVICE MODULES GRID ("Invest by Category")
+              // 3. CORE SERVICE MODULES GRID ("Invest by Category" Style)
               // ===============================================================
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -672,126 +675,240 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       title: state.tr('smart_agricultural_services'),
                       subtitle: state.tr('services_description'),
                     ),
-                    const SizedBox(height: 4),
-                    GridView.count(
-                      crossAxisCount: state.isSimpleMode ? 1 : 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                      childAspectRatio: state.isSimpleMode ? 2.6 : 0.95,
-                      children: [
-                        AnimatedActionCard(
-                          title: state.tr('crop_health'),
-                          subtitle: state.tr('screen_crop_image'),
-                          icon: Icons.camera_alt_rounded,
-                          iconColor: const Color(0xFFE65100),
-                          illustration: state.isSimpleMode
-                              ? null
-                              : const CardIllustration(
-                                  type: CardIllustrationType.cropHealth,
-                                  height: 90,
-                                ),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const CropHealthScreen(),
+                    const SizedBox(height: 8),
+
+                    // Quick-Access Category Shortcut Ribbon (Matching Reference Panel 1)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          _categoryTile(
+                            context: context,
+                            label: state.tr('crop_health'),
+                            icon: Icons.camera_alt_rounded,
+                            color: const Color(0xFFE65100),
+                            bgColor: const Color(0xFFFFF3E0),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CropHealthScreen(),
+                              ),
                             ),
                           ),
-                        ),
-                        AnimatedActionCard(
-                          title: state.tr('smart_recommendation'),
-                          subtitle: state.tr('screen_crops_by_conditions'),
-                          icon: Icons.psychology_rounded,
-                          iconColor: AppColors.forestPine,
-                          illustration: state.isSimpleMode
-                              ? null
-                              : const CardIllustration(
-                                  type: CardIllustrationType.cropRecommendation,
-                                  height: 90,
-                                ),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const SmartCropRecommendationScreen(),
+                          _categoryTile(
+                            context: context,
+                            label: state.tr('smart_recommendation'),
+                            icon: Icons.psychology_rounded,
+                            color: AppColors.forestPine,
+                            bgColor: const Color(0xFFE8F5E9),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const SmartCropRecommendationScreen(),
+                              ),
                             ),
                           ),
-                        ),
-                        AnimatedActionCard(
-                          title: state.tr('weather_summary'),
-                          subtitle: state.tr('forecast_and_irrigation'),
-                          icon: Icons.water_drop_rounded,
-                          iconColor: const Color(0xFF0284C7),
-                          illustration: state.isSimpleMode
-                              ? null
-                              : const CardIllustration(
-                                  type: CardIllustrationType.weather,
-                                  height: 90,
-                                ),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const WeatherIrrigationScreen(),
+                          _categoryTile(
+                            context: context,
+                            label: state.tr('weather_summary'),
+                            icon: Icons.water_drop_rounded,
+                            color: const Color(0xFF0284C7),
+                            bgColor: const Color(0xFFE0F7FA),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const WeatherIrrigationScreen(),
+                              ),
                             ),
                           ),
-                        ),
-                        AnimatedActionCard(
-                          title: state.tr('yield_estimator'),
-                          subtitle: state.tr('estimate_user_values'),
-                          icon: Icons.calculate_rounded,
-                          iconColor: const Color(0xFF7C3AED),
-                          illustration: state.isSimpleMode
-                              ? null
-                              : const CardIllustration(
-                                  type: CardIllustrationType.yieldProfit,
-                                  height: 90,
-                                ),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  const YieldProfitEstimatorScreen(),
+                          _categoryTile(
+                            context: context,
+                            label: state.tr('yield_estimator'),
+                            icon: Icons.calculate_rounded,
+                            color: const Color(0xFF7C3AED),
+                            bgColor: const Color(0xFFF3E5F5),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const YieldProfitEstimatorScreen(),
+                              ),
                             ),
                           ),
-                        ),
-                        AnimatedActionCard(
-                          title: state.tr('personal_assistant'),
-                          subtitle: state.tr('ask_assistant_provider'),
-                          icon: Icons.support_agent_rounded,
-                          iconColor: const Color(0xFF0D9488),
-                          illustration: state.isSimpleMode
-                              ? null
-                              : const CardIllustration(
-                                  type: CardIllustrationType.aiAssistant,
-                                  height: 90,
-                                ),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const PersonalAssistantScreen(),
+                          _categoryTile(
+                            context: context,
+                            label: state.tr('personal_assistant'),
+                            icon: Icons.support_agent_rounded,
+                            color: const Color(0xFF0D9488),
+                            bgColor: const Color(0xFFE0F2F1),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PersonalAssistantScreen(),
+                              ),
                             ),
                           ),
-                        ),
-                        AnimatedActionCard(
-                          title: state.tr('farmer_profile'),
-                          subtitle: state.tr('manage_farm_details'),
-                          icon: Icons.landscape_rounded,
-                          iconColor: const Color(0xFF15803D),
-                          illustration: state.isSimpleMode
-                              ? null
-                              : const CardIllustration(
-                                  type: CardIllustrationType.farmProfile,
-                                  height: 90,
-                                ),
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const FarmerProfileScreen(),
+                          _categoryTile(
+                            context: context,
+                            label: state.tr('farmer_profile'),
+                            icon: Icons.landscape_rounded,
+                            color: const Color(0xFF15803D),
+                            bgColor: const Color(0xFFE8F5E9),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const FarmerProfileScreen(),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Intelligent Farming Tools - Responsive Cards Grid
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final width = constraints.maxWidth;
+                        final crossAxisCount = state.isSimpleMode
+                            ? 1
+                            : (width > 680 ? 3 : 2);
+                        final colWidth = (width - (crossAxisCount - 1) * 12) / crossAxisCount;
+                        final cardHeight = state.isSimpleMode ? 82.0 : 194.0;
+                        final childAspectRatio = (colWidth / cardHeight).clamp(0.72, 3.8);
+
+                        return GridView.count(
+                          crossAxisCount: crossAxisCount,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: childAspectRatio,
+                          children: [
+                            AnimatedActionCard(
+                              title: state.tr('crop_health'),
+                              subtitle: state.tr('screen_crop_image'),
+                              icon: Icons.camera_alt_rounded,
+                              iconColor: const Color(0xFFE65100),
+                              badgeText: 'AI SCAN',
+                              illustration: state.isSimpleMode
+                                  ? null
+                                  : const CardIllustration(
+                                      type: CardIllustrationType.cropHealth,
+                                      height: 112,
+                                    ),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CropHealthScreen(),
+                                ),
+                              ),
+                            ),
+                            AnimatedActionCard(
+                              title: state.tr('smart_recommendation'),
+                              subtitle: state.tr('screen_crops_by_conditions'),
+                              icon: Icons.psychology_rounded,
+                              iconColor: AppColors.forestPine,
+                              badgeText: 'ADVISOR',
+                              illustration: state.isSimpleMode
+                                  ? null
+                                  : const CardIllustration(
+                                      type: CardIllustrationType.cropRecommendation,
+                                      height: 112,
+                                    ),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const SmartCropRecommendationScreen(),
+                                ),
+                              ),
+                            ),
+                            AnimatedActionCard(
+                              title: state.tr('weather_summary'),
+                              subtitle: state.tr('forecast_and_irrigation'),
+                              icon: Icons.water_drop_rounded,
+                              iconColor: const Color(0xFF0284C7),
+                              badgeText: 'RADAR',
+                              illustration: state.isSimpleMode
+                                  ? null
+                                  : const CardIllustration(
+                                      type: CardIllustrationType.weather,
+                                      height: 112,
+                                    ),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const WeatherIrrigationScreen(),
+                                ),
+                              ),
+                            ),
+                            AnimatedActionCard(
+                              title: state.tr('yield_estimator'),
+                              subtitle: state.tr('estimate_user_values'),
+                              icon: Icons.calculate_rounded,
+                              iconColor: const Color(0xFF7C3AED),
+                              badgeText: 'PROFIT',
+                              illustration: state.isSimpleMode
+                                  ? null
+                                  : const CardIllustration(
+                                      type: CardIllustrationType.yieldProfit,
+                                      height: 112,
+                                    ),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const YieldProfitEstimatorScreen(),
+                                ),
+                              ),
+                            ),
+                            AnimatedActionCard(
+                              title: state.tr('personal_assistant'),
+                              subtitle: state.tr('ask_assistant_provider'),
+                              icon: Icons.support_agent_rounded,
+                              iconColor: const Color(0xFF0D9488),
+                              badgeText: 'COPILOT',
+                              illustration: state.isSimpleMode
+                                  ? null
+                                  : const CardIllustration(
+                                      type: CardIllustrationType.aiAssistant,
+                                      height: 112,
+                                    ),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const PersonalAssistantScreen(),
+                                ),
+                              ),
+                            ),
+                            AnimatedActionCard(
+                              title: state.tr('farmer_profile'),
+                              subtitle: state.tr('manage_farm_details'),
+                              icon: Icons.landscape_rounded,
+                              iconColor: const Color(0xFF15803D),
+                              badgeText: 'FARMS',
+                              illustration: state.isSimpleMode
+                                  ? null
+                                  : const CardIllustration(
+                                      type: CardIllustrationType.farmProfile,
+                                      height: 112,
+                                    ),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const FarmerProfileScreen(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 22),
@@ -1042,7 +1159,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: AppBottomNav(
+    ),
+  ),
+  bottomNavigationBar: AppBottomNav(
         currentIndex: _currentNavIndex,
         onTabSelected: _onBottomNavSelected,
       ),
@@ -1121,5 +1240,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return Icons.thunderstorm_rounded;
     }
     return Icons.wb_sunny_rounded;
+  }
+
+  Widget _categoryTile({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required Color color,
+    required Color bgColor,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(right: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: 86,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.charcoalSurface : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? AppColors.borderDark : const Color(0xFFE5EDE7),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? Colors.black26 : const Color(0x0A0D3D22),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColors.textDarkPrimary : AppColors.textPrimary,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
