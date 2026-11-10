@@ -1,0 +1,16 @@
+# Production requirements — excludes heavy ML deps (ultralytics, kagglehub)
+# that exceed the free-tier memory limit. Disease detection gracefully returns
+# 503 when DISEASE_MODEL_PATH is unset.
+fastapi>=0.110,<1
+uvicorn[standard]>=0.28,<1
+pydantic>=2.6,<3
+pydantic-settings>=2.2,<3
+python-dotenv>=1,<2
+httpx>=0.27,<1
+supabase>=2.3,<3
+PyJWT>=2.8,<3
+bcrypt>=4,<6
+SQLAlchemy>=2,<3
+psycopg[binary]>=3.2,<4
+python-multipart>=0.0.12,<0.1
+Pillow>=13.0.0,<14

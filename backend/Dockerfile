@@ -8,8 +8,14 @@ WORKDIR /app
 
 RUN addgroup --system app && adduser --system --ingroup app app
 
-COPY requirements.txt ./
-RUN python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+# Use production requirements (lighter, no YOLO) when available; fall back to full.
+COPY requirements*.txt ./
+RUN python -m pip install --upgrade pip && \
+    if [ -f requirements.prod.txt ]; then \
+        python -m pip install -r requirements.prod.txt; \
+    else \
+        python -m pip install -r requirements.txt; \
+    fi
 
 COPY --chown=app:app app ./app
 

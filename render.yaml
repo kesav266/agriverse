@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: agriverse-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: oregon
+    healthCheckPath: /health/live
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: WEATHER_API_KEY
+        sync: false
+      - key: GEMINI_AI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: "gemini-3.5-flash-lite"
+      - key: DISEASE_MODEL_PATH
+        value: ""
+      - key: CORS_ORIGINS
+        sync: false
+      - key: TRUSTED_HOSTS
+        sync: false
+      - key: HEALTHCHECK_HOST
+        sync: false
+      - key: PORT
+        value: "8000"
+      - key: WEB_CONCURRENCY
+        value: "1"
