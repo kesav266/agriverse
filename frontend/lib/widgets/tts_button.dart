@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/state/app_state_provider.dart';
 import '../core/theme/app_colors.dart';
-
 /// Speaker Button Widget supporting Text-to-Speech (TTS) reading for accessibility.
 class TtsButton extends StatelessWidget {
   final String textToSpeak;
@@ -21,10 +20,17 @@ class TtsButton extends StatelessWidget {
     final state = Provider.of<AppStateProvider>(context, listen: false);
 
     return IconButton(
-      icon: Icon(
-        Icons.volume_up_rounded,
-        size: iconSize,
-        color: color ?? AppColors.limeAccent,
+      icon: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: (color ?? AppColors.limeAccent).withValues(alpha: 0.16),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.volume_up_rounded,
+          size: iconSize,
+          color: color ?? AppColors.limeAccent,
+        ),
       ),
       tooltip: state.tr('listen_speak'),
       onPressed: () async {

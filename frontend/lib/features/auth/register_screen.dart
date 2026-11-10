@@ -9,6 +9,7 @@ import '../../widgets/app_card.dart';
 import '../../widgets/app_text_field.dart';
 import '../dashboard/dashboard_screen.dart';
 
+/// Screen 3: Premium Modern Farmer Registration & Onboarding Screen.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -77,161 +78,257 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppStateProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.warmIvory,
-      appBar: AppBar(title: Text(appState.tr('register'))),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Center(
-                  child: Icon(
-                    Icons.person_add_alt_1_rounded,
-                    size: 48,
-                    color: AppColors.emerald,
-                  ),
-                ).animate().scale(duration: 350.ms),
-                const SizedBox(height: 14),
-                Text(
-                  appState.tr('register'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.forestGreen,
-                  ),
+      backgroundColor: isDark ? AppColors.nightCanopy : const Color(0xFFF6F8F5),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Top Green Header Banner
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF0A2E1B), Color(0xFF134A2C), Color(0xFF185A36)],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  appState.tr('register_description'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    color: AppColors.textSecondary,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                if (_errorMessage != null) ...[
-                  _ErrorNotice(message: _errorMessage!),
-                  const SizedBox(height: 14),
-                ],
-                AppCard(
-                  padding: const EdgeInsets.all(22),
-                  borderRadius: 22,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
                   child: Column(
                     children: [
-                      AppTextField(
-                        controller: _name,
-                        label: appState.tr('full_name'),
-                        hint: appState.tr('your_name'),
-                        prefixIcon: Icons.badge_rounded,
-                        validator: (value) =>
-                            value == null || value.trim().length < 2
-                            ? appState.tr('enter_full_name')
-                            : null,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            onPressed: () => Navigator.maybePop(context),
+                          ),
+                          Text(
+                            appState.tr('register'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 48),
+                        ],
                       ),
-                      const SizedBox(height: 14),
-                      AppTextField(
-                        controller: _phone,
-                        label: appState.tr('phone_number'),
-                        hint: '+91 98765 43210',
-                        prefixIcon: Icons.phone_rounded,
-                        keyboardType: TextInputType.phone,
-                        validator: (value) {
-                          final digits =
-                              value?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
-                          return digits.length < 10 || digits.length > 15
-                              ? appState.tr('valid_phone')
-                              : null;
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      AppTextField(
-                        controller: _password,
-                        label: appState.tr('password'),
-                        hint: appState.tr('password_minimum'),
-                        prefixIcon: Icons.lock_outline_rounded,
-                        obscureText: true,
-                        validator: (value) => value == null || value.length < 12
-                            ? appState.tr('password_too_short')
-                            : null,
-                      ),
-                      const SizedBox(height: 14),
-                      AppTextField(
-                        controller: _confirmPassword,
-                        label: appState.tr('confirm_password'),
-                        hint: appState.tr('enter_password_again'),
-                        prefixIcon: Icons.lock_reset_rounded,
-                        obscureText: true,
-                        validator: (value) => value != _password.text
-                            ? appState.tr('passwords_mismatch')
-                            : null,
-                      ),
-                      const SizedBox(height: 14),
-                      AppTextField(
-                        controller: _village,
-                        label: appState.tr('village'),
-                        hint: appState.tr('village_optional'),
-                        prefixIcon: Icons.location_city_rounded,
-                      ),
-                      const SizedBox(height: 14),
-                      AppTextField(
-                        controller: _district,
-                        label: appState.tr('district'),
-                        hint: appState.tr('district'),
-                        prefixIcon: Icons.map_rounded,
-                        validator: (value) =>
-                            value == null || value.trim().length < 2
-                            ? appState.tr('enter_district')
-                            : null,
-                      ),
-                      const SizedBox(height: 14),
-                      AppTextField(
-                        controller: _state,
-                        label: appState.tr('state'),
-                        hint: appState.tr('state'),
-                        prefixIcon: Icons.public_rounded,
-                        validator: (value) =>
-                            value == null || value.trim().length < 2
-                            ? appState.tr('enter_state')
-                            : null,
-                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.limeAccent,
+                            width: 2.0,
+                          ),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.person_add_alt_1_rounded,
+                            size: 30,
+                            color: AppColors.limeAccent,
+                          ),
+                        ),
+                      ).animate().scale(duration: 350.ms),
                       const SizedBox(height: 12),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: _simpleMode,
-                        activeThumbColor: AppColors.emerald,
-                        title: Text(appState.tr('simple_mode')),
-                        subtitle: Text(appState.tr('simple_mode_on')),
-                        onChanged: _isLoading
-                            ? null
-                            : (value) => setState(() => _simpleMode = value),
+                      Text(
+                        appState.tr('register'),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.3,
+                        ),
                       ),
-                      const SizedBox(height: 18),
-                      AppButton(
-                        text: appState.tr('create_account'),
-                        icon: Icons.check_circle_rounded,
-                        isLoading: _isLoading,
-                        expanded: true,
-                        height: 50,
-                        onPressed: _submit,
+                      const SizedBox(height: 4),
+                      Text(
+                        appState.tr('register_description'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
                       ),
                     ],
                   ),
-                ).animate().fadeIn(duration: 350.ms, delay: 100.ms),
-                const SizedBox(height: 18),
-                TextButton(
-                  onPressed: _isLoading ? null : () => Navigator.pop(context),
-                  child: Text(appState.tr('login')),
                 ),
-              ],
+              ),
             ),
-          ),
+
+            // Form Content
+            Transform.translate(
+              offset: const Offset(0, -18),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_errorMessage != null) ...[
+                        _ErrorNotice(message: _errorMessage!),
+                        const SizedBox(height: 14),
+                      ],
+                      AppCard(
+                        padding: const EdgeInsets.all(22),
+                        borderRadius: 24,
+                        child: Column(
+                          children: [
+                            AppTextField(
+                              controller: _name,
+                              label: appState.tr('full_name'),
+                              hint: appState.tr('your_name'),
+                              prefixIcon: Icons.badge_rounded,
+                              validator: (value) =>
+                                  value == null || value.trim().length < 2
+                                  ? appState.tr('enter_full_name')
+                                  : null,
+                            ),
+                            const SizedBox(height: 14),
+                            AppTextField(
+                              controller: _phone,
+                              label: appState.tr('phone_number'),
+                              hint: '+91 98765 43210',
+                              prefixIcon: Icons.phone_rounded,
+                              keyboardType: TextInputType.phone,
+                              validator: (value) {
+                                final digits =
+                                    value?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+                                return digits.length < 10 || digits.length > 15
+                                    ? appState.tr('valid_phone')
+                                    : null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            AppTextField(
+                              controller: _password,
+                              label: appState.tr('password'),
+                              hint: appState.tr('password_minimum'),
+                              prefixIcon: Icons.lock_outline_rounded,
+                              obscureText: true,
+                              validator: (value) => value == null || value.length < 12
+                                  ? appState.tr('password_too_short')
+                                  : null,
+                            ),
+                            const SizedBox(height: 14),
+                            AppTextField(
+                              controller: _confirmPassword,
+                              label: appState.tr('confirm_password'),
+                              hint: appState.tr('enter_password_again'),
+                              prefixIcon: Icons.lock_reset_rounded,
+                              obscureText: true,
+                              validator: (value) => value != _password.text
+                                  ? appState.tr('passwords_mismatch')
+                                  : null,
+                            ),
+                            const SizedBox(height: 14),
+                            AppTextField(
+                              controller: _village,
+                              label: appState.tr('village'),
+                              hint: appState.tr('village_optional'),
+                              prefixIcon: Icons.location_city_rounded,
+                            ),
+                            const SizedBox(height: 14),
+                            AppTextField(
+                              controller: _district,
+                              label: appState.tr('district'),
+                              hint: appState.tr('district'),
+                              prefixIcon: Icons.map_rounded,
+                              validator: (value) =>
+                                  value == null || value.trim().length < 2
+                                  ? appState.tr('enter_district')
+                                  : null,
+                            ),
+                            const SizedBox(height: 14),
+                            AppTextField(
+                              controller: _state,
+                              label: appState.tr('state'),
+                              hint: appState.tr('state'),
+                              prefixIcon: Icons.public_rounded,
+                              validator: (value) =>
+                                  value == null || value.trim().length < 2
+                                  ? appState.tr('enter_state')
+                                  : null,
+                            ),
+                            const SizedBox(height: 14),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.cardElevatedDark : const Color(0xFFF7FAF8),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isDark ? AppColors.borderDark : const Color(0xFFE5EDE7),
+                                ),
+                              ),
+                              child: SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                value: _simpleMode,
+                                activeThumbColor: AppColors.forestPine,
+                                title: Text(
+                                  appState.tr('simple_mode'),
+                                  style: const TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                subtitle: Text(
+                                  appState.tr('simple_mode_on'),
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                onChanged: _isLoading
+                                    ? null
+                                    : (value) => setState(() => _simpleMode = value),
+                              ),
+                            ),
+                            const SizedBox(height: 22),
+                            AppButton(
+                              text: appState.tr('create_account'),
+                              icon: Icons.check_circle_rounded,
+                              isLoading: _isLoading,
+                              expanded: true,
+                              height: 52,
+                              isPill: true,
+                              onPressed: _submit,
+                            ),
+                          ],
+                        ),
+                      ).animate().fadeIn(duration: 350.ms, delay: 100.ms),
+                      const SizedBox(height: 18),
+                      TextButton(
+                        onPressed: _isLoading ? null : () => Navigator.pop(context),
+                        child: Text(
+                          appState.tr('login'),
+                          style: const TextStyle(
+                            color: AppColors.forestPine,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -245,18 +342,27 @@ class _ErrorNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(12),
+    padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: AppColors.errorLight,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: AppColors.errorBorder),
+      color: const Color(0xFFFFEDEA),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0xFFFFB4AB)),
     ),
-    child: Text(
-      message,
-      style: const TextStyle(
-        color: AppColors.error,
-        fontWeight: FontWeight.w600,
-      ),
+    child: Row(
+      children: [
+        const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            message,
+            style: const TextStyle(
+              color: AppColors.error,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }

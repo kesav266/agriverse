@@ -38,7 +38,7 @@ class AppCard extends StatelessWidget {
         ? AppColors.charcoalSurface
         : AppColors.surfaceWhite;
     final effectiveShadow =
-        boxShadow ?? (isDark ? AppShadows.darkCard : AppShadows.subtle);
+        boxShadow ?? (isDark ? AppShadows.darkCard : AppShadows.card);
 
     final decoration = BoxDecoration(
       color: gradient == null ? (color ?? defaultBg) : null,

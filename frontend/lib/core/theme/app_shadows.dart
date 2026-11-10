@@ -8,11 +8,16 @@ class AppShadows {
   ];
 
   static const List<BoxShadow> card = [
-    BoxShadow(color: Color(0x0D0F3826), blurRadius: 14, offset: Offset(0, 4)),
+    BoxShadow(color: Color(0x0C0D3D22), blurRadius: 16, offset: Offset(0, 4)),
   ];
 
   static const List<BoxShadow> elevated = [
-    BoxShadow(color: Color(0x140F3826), blurRadius: 20, offset: Offset(0, 6)),
+    BoxShadow(color: Color(0x140D3D22), blurRadius: 24, offset: Offset(0, 8)),
+  ];
+
+  static const List<BoxShadow> floatingCard = [
+    BoxShadow(color: Color(0x100D3D22), blurRadius: 28, offset: Offset(0, 10)),
+    BoxShadow(color: Color(0x05000000), blurRadius: 6, offset: Offset(0, 2)),
   ];
 
   static const List<BoxShadow> modal = [
@@ -20,7 +25,7 @@ class AppShadows {
   ];
 
   static const List<BoxShadow> bottomBar = [
-    BoxShadow(color: Color(0x0C000000), blurRadius: 16, offset: Offset(0, -4)),
+    BoxShadow(color: Color(0x0F0D3D22), blurRadius: 20, offset: Offset(0, -4)),
   ];
 
   // Dark theme shadow equivalents

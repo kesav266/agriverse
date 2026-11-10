@@ -36,26 +36,34 @@ class MainDrawer extends StatelessWidget {
           Container(
             padding: const EdgeInsets.only(
               top: 50,
-              bottom: 20,
+              bottom: 24,
               left: 20,
               right: 20,
             ),
             decoration: const BoxDecoration(
               gradient: AppColors.forestHeroGradient,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 52,
-                  height: 52,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Colors.white.withValues(alpha: 0.16),
                     shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.limeAccent, width: 1.5),
+                    border: Border.all(color: AppColors.limeAccent, width: 2.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: const Icon(
                     Icons.person_rounded,
-                    size: 30,
+                    size: 32,
                     color: Colors.white,
                   ),
                 ),
@@ -68,21 +76,36 @@ class MainDrawer extends StatelessWidget {
                         profile?.fullName ?? state.tr('welcome_farmer'),
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,
-                          fontSize: 17,
+                          fontSize: 18,
                           color: Colors.white,
+                          letterSpacing: -0.2,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        location.isEmpty
-                            ? state.tr('location_not_set')
-                            : location,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_rounded,
+                            size: 13,
+                            color: AppColors.limeAccent,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              location.isEmpty
+                                  ? state.tr('location_not_set')
+                                  : location,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: Colors.white.withValues(alpha: 0.85),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

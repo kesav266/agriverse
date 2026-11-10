@@ -259,29 +259,29 @@ class _AnimatedActionCardState extends State<AnimatedActionCard> {
 
     return InkWell(
       onTap: widget.onTap,
-      borderRadius: BorderRadius.circular(AppRadii.lgValue),
+      borderRadius: BorderRadius.circular(20.0),
       onHighlightChanged: (val) => setState(() => _isHovered = val),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
+        duration: const Duration(milliseconds: 160),
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(AppRadii.lgValue),
+          borderRadius: BorderRadius.circular(20.0),
           border: Border.all(
             color: _isHovered
-                ? widget.iconColor.withValues(alpha: 0.4)
-                : (isDark ? AppColors.borderDark : AppColors.borderLight),
-            width: _isHovered ? 1.5 : 1.2,
+                ? widget.iconColor.withValues(alpha: 0.45)
+                : (isDark ? AppColors.borderDark : const Color(0xFFE8EFEA)),
+            width: _isHovered ? 1.6 : 1.2,
           ),
           boxShadow: [
             BoxShadow(
               color: _isHovered
-                  ? widget.iconColor.withValues(alpha: 0.12)
+                  ? widget.iconColor.withValues(alpha: 0.14)
                   : (isDark
                         ? Colors.black26
-                        : Colors.black.withValues(alpha: 0.03)),
-              blurRadius: _isHovered ? 16 : 8,
-              offset: Offset(0, _isHovered ? 6 : 2),
+                        : const Color(0x0A0D3D22)),
+              blurRadius: _isHovered ? 18 : 10,
+              offset: Offset(0, _isHovered ? 6 : 3),
             ),
           ],
         ),
@@ -296,17 +296,25 @@ class _AnimatedActionCardState extends State<AnimatedActionCard> {
                   padding: const EdgeInsets.all(11.0),
                   decoration: BoxDecoration(
                     color: widget.iconColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppRadii.mdValue),
+                    borderRadius: BorderRadius.circular(14.0),
                   ),
                   child: Icon(widget.icon, color: widget.iconColor, size: 24),
                 ),
                 if (widget.trailingBadge != null)
                   widget.trailingBadge!
                 else
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 18,
-                    color: AppColors.textMuted,
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white10 : const Color(0xFFF3F7F4),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 15,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
               ],
             ),
@@ -320,6 +328,7 @@ class _AnimatedActionCardState extends State<AnimatedActionCard> {
                     fontSize: 15.0,
                     fontWeight: FontWeight.w700,
                     color: titleColor,
+                    letterSpacing: -0.2,
                   ),
                 ),
                 const SizedBox(height: 3),
@@ -400,4 +409,109 @@ class _ShimmerBoxState extends State<ShimmerBox>
       ),
     );
   }
+}
+
+/// Sunrise / Sunset Day Arc Visualization (inspired by modern agricultural telemetry).
+class SunriseArcWidget extends StatelessWidget {
+  final String sunrise;
+  final String sunset;
+  final double progress; // 0.0 to 1.0 (sun position)
+
+  const SunriseArcWidget({
+    super.key,
+    this.sunrise = '5:25 am',
+    this.sunset = '6:45 pm',
+    this.progress = 0.55,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 38,
+          child: CustomPaint(
+            size: const Size(double.infinity, 38),
+            painter: _SunArcPainter(progress: progress),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.wb_twilight_rounded, size: 14, color: AppColors.harvestGold),
+                const SizedBox(width: 4),
+                Text(
+                  '$sunrise Sunrise',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                Text(
+                  '$sunset Sunset',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.nights_stay_rounded, size: 14, color: AppColors.monsoonAzure),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SunArcPainter extends CustomPainter {
+  final double progress;
+  _SunArcPainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(20, 4, size.width - 40, size.height * 1.8);
+    final arcPaint = Paint()
+      ..color = const Color(0xFFE2EBE5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    // Draw dashed or smooth arc
+    canvas.drawArc(rect, 3.14159, 3.14159, false, arcPaint);
+
+    // Compute sun position on arc
+    final radiusX = (size.width - 40) / 2;
+    final radiusY = (size.height * 1.8) / 2;
+    final centerX = 20 + radiusX;
+    final centerY = 4 + radiusY;
+
+    _drawSun(canvas, centerX, centerY, radiusX, radiusY);
+  }
+
+  void _drawSun(Canvas canvas, double cx, double cy, double rx, double ry) {
+    final x = cx + rx * -1 * (1 - 2 * progress);
+    final y = cy - ry * (1 - (2 * progress - 1).abs() * 0.75);
+
+    // Sun glow
+    final glowPaint = Paint()..color = const Color(0x40F59E0B);
+    canvas.drawCircle(Offset(x, y.clamp(6.0, 32.0)), 10, glowPaint);
+
+    // Sun center
+    final sunPaint = Paint()..color = const Color(0xFFF59E0B);
+    canvas.drawCircle(Offset(x, y.clamp(6.0, 32.0)), 5, sunPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SunArcPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }

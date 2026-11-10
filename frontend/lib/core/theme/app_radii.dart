@@ -8,6 +8,8 @@ class AppRadii {
   static const double mdValue = 14.0;
   static const double lgValue = 18.0;
   static const double xlValue = 24.0;
+  static const double xxlValue = 28.0;
+  static const double headerCurveValue = 32.0;
   static const double pillValue = 999.0;
 
   // Reusable BorderRadius constants
@@ -17,6 +19,10 @@ class AppRadii {
   static const BorderRadius md = BorderRadius.all(Radius.circular(mdValue));
   static const BorderRadius lg = BorderRadius.all(Radius.circular(lgValue));
   static const BorderRadius xl = BorderRadius.all(Radius.circular(xlValue));
+  static const BorderRadius xxl = BorderRadius.all(Radius.circular(xxlValue));
+  static const BorderRadius headerCurve = BorderRadius.vertical(
+    bottom: Radius.circular(headerCurveValue),
+  );
   static const BorderRadius pill = BorderRadius.all(Radius.circular(pillValue));
 
   // Top-only sheet borders

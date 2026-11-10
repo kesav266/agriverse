@@ -7,7 +7,9 @@ import '../../core/theme/app_colors.dart';
 import '../../data/models/crop_cycle.dart';
 import '../../data/models/farm_land.dart';
 import '../../data/models/farm_observation.dart';
+import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/design_components.dart';
 import '../../widgets/main_drawer.dart';
 import '../../widgets/state_views.dart';
 
@@ -723,54 +725,133 @@ class _CropCycleDetailsScreenState extends State<CropCycleDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppStateProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.warmIvory,
-      appBar: AppBar(title: Text(widget.cycle.cropName)),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _editObservation(),
-        icon: const Icon(Icons.add),
-        label: Text(state.tr('add_observation')),
+      backgroundColor: isDark ? AppColors.nightCanopy : const Color(0xFFF6F8F5),
+      appBar: AppBar(
+        title: Text(widget.cycle.cropName),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            tooltip: state.tr('refresh'),
+            onPressed: () => _loadObservations(reset: true),
+          ),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: AppButton(
+            text: state.tr('add_observation'),
+            icon: Icons.add_circle_outline_rounded,
+            isPill: true,
+            height: 52,
+            expanded: true,
+            onPressed: () => _editObservation(),
+          ),
+        ),
       ),
       body: RefreshIndicator(
+        color: AppColors.forestPine,
         onRefresh: () => _loadObservations(reset: true),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Crop Hero Detail Card (inspired by Image Screen 2)
             AppCard(
+              borderRadius: 22,
+              padding: const EdgeInsets.all(18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.farm.farmName,
-                    style: Theme.of(context).textTheme.titleMedium,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.mistMint,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.eco_rounded,
+                          color: AppColors.forestPine,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.farm.farmName,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: isDark
+                                    ? AppColors.textDarkPrimary
+                                    : AppColors.textHeadline,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${state.tr('variety')}: ${widget.cycle.variety}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      FarmStatusBadge(
+                        label: _optionLabel(state, _statusKey(widget.cycle.status), widget.cycle.status),
+                        icon: Icons.check_circle_rounded,
+                        color: AppColors.forestPine,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${state.tr('stage')}: ${_optionLabel(state, _stageKey(widget.cycle.stage), widget.cycle.stage)}',
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _cycleMetric(
+                        state.tr('stage'),
+                        _optionLabel(state, _stageKey(widget.cycle.stage), widget.cycle.stage),
+                        Icons.spa_rounded,
+                      ),
+                      _cycleMetric(
+                        state.tr('sowing_date'),
+                        widget.cycle.sowingDate,
+                        Icons.calendar_today_rounded,
+                      ),
+                      if (widget.cycle.expectedHarvestDate != null)
+                        _cycleMetric(
+                          state.tr('expected_harvest_date'),
+                          widget.cycle.expectedHarvestDate!,
+                          Icons.event_available_rounded,
+                        ),
+                    ],
                   ),
-                  Text(
-                    '${state.tr('status')}: ${_optionLabel(state, _statusKey(widget.cycle.status), widget.cycle.status)}',
-                  ),
-                  Text(
-                    '${state.tr('sowing_date')}: ${widget.cycle.sowingDate}',
-                  ),
-                  if (widget.cycle.expectedHarvestDate != null)
-                    Text(
-                      '${state.tr('expected_harvest_date')}: ${widget.cycle.expectedHarvestDate}',
-                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              state.tr('field_observations'),
-              style: Theme.of(context).textTheme.titleLarge,
+
+            const SizedBox(height: 20),
+
+            // Notes / Field Observations Section (matching Image Screen 3)
+            SectionHeader(
+              title: state.tr('field_observations'),
+              subtitle: 'Timeline of pest symptoms, soil moisture, and notes',
             ),
-            const SizedBox(height: 8),
+
+            const SizedBox(height: 6),
+
             if (_loading)
               const Center(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: EdgeInsets.all(28),
                   child: CircularProgressIndicator(),
                 ),
               )
@@ -788,28 +869,116 @@ class _CropCycleDetailsScreenState extends State<CropCycleDetailsScreen> {
               )
             else ...[
               if (_error != null)
-                Text(_error!, style: const TextStyle(color: AppColors.error)),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(_error!, style: const TextStyle(color: AppColors.error)),
+                ),
               for (final observation in _observations)
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.fact_check_outlined),
-                    title: Text(observation.observationDate),
-                    subtitle: Text(
-                      [
-                        if (observation.soilMoisturePercentage != null)
-                          '${state.tr('soil_moisture')}: ${observation.soilMoisturePercentage!.toStringAsFixed(1)}%',
-                        if (observation.pestSymptoms?.isNotEmpty == true)
-                          '${state.tr('pest_symptoms')}: ${observation.pestSymptoms}',
-                        if (observation.notes?.isNotEmpty == true)
-                          observation.notes!,
-                      ].join('\n'),
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.charcoalSurface : Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: isDark ? AppColors.borderDark : const Color(0xFFE5EDE7),
                     ),
-                    isThreeLine: true,
+                    boxShadow: isDark
+                        ? null
+                        : const [
+                            BoxShadow(
+                              color: Color(0x080D3D22),
+                              blurRadius: 10,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                  ),
+                  child: InkWell(
                     onTap: () => _editObservation(observation: observation),
-                    trailing: IconButton(
-                      tooltip: state.tr('delete'),
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => _deleteObservation(observation),
+                    borderRadius: BorderRadius.circular(18),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Left Thumbnail Icon
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: AppColors.mistMint,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.eco_rounded,
+                            color: AppColors.forestPine,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    observation.observationDate,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14.5,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    tooltip: state.tr('delete'),
+                                    icon: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      size: 18,
+                                      color: AppColors.textMuted,
+                                    ),
+                                    onPressed: () => _deleteObservation(observation),
+                                  ),
+                                ],
+                              ),
+                              if (observation.soilMoisturePercentage != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${state.tr('soil_moisture')}: ${observation.soilMoisturePercentage!.toStringAsFixed(1)}%',
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.forestPine,
+                                  ),
+                                ),
+                              ],
+                              if (observation.pestSymptoms?.isNotEmpty == true) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${state.tr('pest_symptoms')}: ${observation.pestSymptoms}',
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppColors.warning,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                              if (observation.notes?.isNotEmpty == true) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  observation.notes!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -825,14 +994,44 @@ class _CropCycleDetailsScreenState extends State<CropCycleDetailsScreen> {
                             height: 18,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.expand_more),
+                        : const Icon(Icons.expand_more_rounded),
                     label: Text(state.tr('load_more')),
                   ),
                 ),
             ],
+            const SizedBox(height: 20),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _cycleMetric(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.forestPine),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

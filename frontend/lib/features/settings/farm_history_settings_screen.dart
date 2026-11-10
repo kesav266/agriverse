@@ -9,7 +9,7 @@ import '../../widgets/design_components.dart';
 import '../../widgets/main_drawer.dart';
 import '../auth/login_screen.dart';
 
-/// Screen 10: Farm History, Diagnostics & System Settings Screen.
+/// Screen 12: Premium Modern Farm History, Diagnostics & System Settings Screen.
 class FarmHistorySettingsScreen extends StatefulWidget {
   const FarmHistorySettingsScreen({super.key});
 
@@ -43,22 +43,24 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         title: const Text(
           'Confirm Sign Out',
           style: TextStyle(
             fontWeight: FontWeight.w800,
-            color: AppColors.forestGreen,
+            color: AppColors.forestPine,
           ),
         ),
         content: const Text(
           'Are you sure you want to log out of your AgriVerse AI farmer profile?',
+          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: const Text(
               'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
             ),
           ),
           ElevatedButton(
@@ -72,7 +74,10 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
                 (route) => false,
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
             child: const Text(
               'Log Out',
               style: TextStyle(
@@ -89,15 +94,16 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = Provider.of<AppStateProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.warmIvory,
+      backgroundColor: isDark ? AppColors.nightCanopy : const Color(0xFFF6F8F5),
       appBar: AppBar(
         title: Text(state.tr('farm_history_settings')),
         actions: [
           IconButton(
             onPressed: _reloadHistory,
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             tooltip: state.tr('refresh_history'),
           ),
         ],
@@ -108,18 +114,25 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Historical Crop Records Card
+            // Historical Crop Records Section
             SectionHeader(
               title: state.tr('farm_history'),
               subtitle: state.tr('yield_records_title'),
             ),
+            const SizedBox(height: 4),
             AppCard(
               padding: const EdgeInsets.all(18.0),
+              borderRadius: 22.0,
               child: FutureBuilder<List<dynamic>>(
                 future: _historyFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
                   }
                   if (snapshot.hasError) {
                     return Column(
@@ -138,7 +151,15 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
                   }
                   final history = snapshot.data ?? const [];
                   if (history.isEmpty) {
-                    return Text(state.tr('no_saved_estimates'));
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Center(
+                        child: Text(
+                          state.tr('no_saved_estimates'),
+                          style: const TextStyle(color: AppColors.textSecondary),
+                        ),
+                      ),
+                    );
                   }
                   return Column(
                     children: history.map((raw) {
@@ -146,15 +167,31 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
                       final when = DateTime.tryParse(
                         row['calculated_at'] as String? ?? '',
                       );
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.cardElevatedDark : const Color(0xFFF9FAF8),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isDark ? AppColors.borderDark : const Color(0xFFE2EBE5),
+                          ),
+                        ),
                         child: Row(
                           children: [
-                            const Icon(
-                              Icons.agriculture_outlined,
-                              color: AppColors.emerald,
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.mistMint,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.agriculture_rounded,
+                                color: AppColors.forestPine,
+                                size: 22,
+                              ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -163,11 +200,17 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
                                     row['crop_name'] as String? ??
                                         state.tr('crop_estimate'),
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 15,
                                     ),
                                   ),
+                                  const SizedBox(height: 2),
                                   Text(
-                                    '${row['estimated_yield_quintals']} ${state.tr('quintals')} · ${when?.toLocal() ?? state.tr('date_unavailable')}',
+                                    '${row['estimated_yield_quintals']} ${state.tr('quintals')} · ${when != null ? "${when.toLocal().day}/${when.toLocal().month}/${when.toLocal().year}" : state.tr('date_unavailable')}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -178,11 +221,17 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
                                 Text(
                                   '₹${row['projected_net_profit_inr']}',
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                    color: AppColors.forestPine,
                                   ),
                                 ),
                                 Text(
                                   '${state.tr('cost_label')} ₹${row['cost_of_cultivation_inr']}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textMuted,
+                                  ),
                                 ),
                               ],
                             ),
@@ -195,15 +244,17 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
               ),
             ).animate().fadeIn(duration: 350.ms),
 
-            const SizedBox(height: 18),
+            const SizedBox(height: 22),
 
             // App Settings & Preferences
             SectionHeader(
               title: state.tr('app_configuration_title'),
               subtitle: state.tr('app_configuration_description'),
             ),
+            const SizedBox(height: 4),
             AppCard(
               padding: const EdgeInsets.all(18.0),
+              borderRadius: 22.0,
               child: Column(
                 children: [
                   ListTile(
@@ -211,12 +262,12 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.emerald.withValues(alpha: 0.12),
+                        color: AppColors.mistMint,
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
                         Icons.language_rounded,
-                        color: AppColors.emerald,
+                        color: AppColors.forestPine,
                         size: 22,
                       ),
                     ),
@@ -256,18 +307,18 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
                       },
                     ),
                   ),
-                  const Divider(height: 16),
+                  const Divider(height: 20),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.limeAccent.withValues(alpha: 0.4),
+                        color: AppColors.limeAccent.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
                         Icons.accessibility_new_rounded,
-                        color: AppColors.forestGreen,
+                        color: AppColors.forestPine,
                         size: 22,
                       ),
                     ),
@@ -284,28 +335,28 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
                     ),
                     trailing: Switch(
                       value: state.isSimpleMode,
-                      activeThumbColor: AppColors.emerald,
+                      activeThumbColor: AppColors.forestPine,
                       onChanged: (_) => state.toggleSimpleMode(),
                     ),
                   ),
-                  const Divider(height: 16),
+                  const Divider(height: 20),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0277BD).withValues(alpha: 0.12),
+                        color: const Color(0xFF0284C7).withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
                         Icons.dns_rounded,
-                        color: Color(0xFF0277BD),
+                        color: Color(0xFF0284C7),
                         size: 22,
                       ),
                     ),
                     title: Text(
                       state.tr('backend_api_host'),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
@@ -319,19 +370,20 @@ class _FarmHistorySettingsScreenState extends State<FarmHistorySettingsScreen> {
               ),
             ).animate().fadeIn(duration: 350.ms, delay: 100.ms),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 26),
 
-            // Logout Action
+            // Logout Action Button
             AppButton(
               text: state.tr('logout'),
               icon: Icons.logout_rounded,
               variant: AppButtonVariant.danger,
               expanded: true,
-              height: 50,
+              isPill: true,
+              height: 52,
               onPressed: () => _showLogoutDialog(context, state),
             ).animate().fadeIn(duration: 350.ms, delay: 150.ms),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 28),
           ],
         ),
       ),

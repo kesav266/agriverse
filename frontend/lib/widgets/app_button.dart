@@ -17,6 +17,7 @@ class AppButton extends StatefulWidget {
   final double height;
   final bool expanded;
   final double? borderRadius;
+  final bool isPill;
 
   const AppButton({
     super.key,
@@ -29,6 +30,7 @@ class AppButton extends StatefulWidget {
     this.height = 50.0,
     this.expanded = false,
     this.borderRadius,
+    this.isPill = false,
   });
 
   @override
@@ -147,7 +149,8 @@ class _AppButtonState extends State<AppButton>
       ],
     );
 
-    final double radius = widget.borderRadius ?? AppRadii.lgValue;
+    final double radius = widget.borderRadius ??
+        (widget.isPill ? AppRadii.pillValue : AppRadii.lgValue);
 
     return GestureDetector(
       onTapDown: _onTapDown,

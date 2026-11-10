@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../core/state/app_state_provider.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_shadows.dart';
 import '../../data/models/farm_land.dart';
 import '../farms/crop_cycle_management_screen.dart';
 import '../../widgets/app_button.dart';
@@ -37,7 +38,13 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (dialogContext, setDialogState) => AlertDialog(
-            title: Text(state.tr('edit_profile')),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            title: Text(
+              state.tr('edit_profile'),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             content: Form(
               key: formKey,
               child: SingleChildScrollView(
@@ -48,31 +55,48 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                       controller: name,
                       decoration: InputDecoration(
                         labelText: state.tr('full_name'),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       validator: (value) =>
                           value == null || value.trim().length < 2
                           ? state.tr('enter_name')
                           : null,
                     ),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: village,
                       decoration: InputDecoration(
                         labelText: state.tr('village_optional'),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: district,
                       decoration: InputDecoration(
                         labelText: state.tr('district'),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
                       validator: (value) =>
                           value == null || value.trim().length < 2
                           ? state.tr('enter_district')
                           : null,
                     ),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: region,
-                      decoration: InputDecoration(labelText: state.tr('state')),
+                      decoration: InputDecoration(
+                        labelText: state.tr('state'),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
                       validator: (value) =>
                           value == null || value.trim().length < 2
                           ? state.tr('enter_state')
@@ -88,6 +112,10 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                 child: Text(state.tr('cancel')),
               ),
               FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.forestGreen,
+                  shape: const StadiumBorder(),
+                ),
                 onPressed: saving
                     ? null
                     : () async {
@@ -188,12 +216,15 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
               padding: EdgeInsets.only(
                 left: 22,
                 right: 22,
-                top: 22,
+                top: 14,
                 bottom: MediaQuery.of(ctx).viewInsets.bottom + 22,
               ),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.surfaceWhite,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(28),
+                ),
+                boxShadow: AppShadows.floatingCard,
               ),
               child: SingleChildScrollView(
                 child: Form(
@@ -202,6 +233,17 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -209,7 +251,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                             appState.tr(
                               farm == null ? 'add_farm_land' : 'edit_farm',
                             ),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.w800,
                               color: AppColors.forestGreen,
@@ -322,6 +364,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                             : appState.tr('save_changes'),
                         icon: Icons.check_circle_rounded,
                         expanded: true,
+                        isPill: true,
                         height: 50,
                         onPressed: saving
                             ? null
@@ -544,6 +587,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
               trailing: AppButton(
                 text: state.tr('add_farm'),
                 icon: Icons.add_rounded,
+                isPill: true,
                 height: 38,
                 variant: AppButtonVariant.primary,
                 onPressed: () => _showFarmDialog(context),
@@ -576,7 +620,8 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                 itemBuilder: (context, idx) {
                   final farm = farms[idx];
                   return AppCard(
-                    margin: const EdgeInsets.only(bottom: 12.0),
+                    borderRadius: 20,
+                    margin: const EdgeInsets.only(bottom: 14.0),
                     padding: const EdgeInsets.all(18.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -589,7 +634,7 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                                 color: AppColors.emerald.withValues(
                                   alpha: 0.12,
                                 ),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(14),
                               ),
                               child: const Icon(
                                 Icons.landscape_rounded,
@@ -671,9 +716,21 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 12),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: TextButton.icon(
+                          child: FilledButton.tonalIcon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.softSage.withValues(
+                                alpha: 0.35,
+                              ),
+                              foregroundColor: AppColors.forestGreen,
+                              shape: const StadiumBorder(),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                            ),
                             onPressed: () async {
                               await Navigator.push<void>(
                                 context,
@@ -688,8 +745,14 @@ class _FarmerProfileScreenState extends State<FarmerProfileScreen> {
                                     .loadDashboardData();
                               }
                             },
-                            icon: const Icon(Icons.grass_outlined),
-                            label: Text(state.tr('manage_crop_cycles')),
+                            icon: const Icon(Icons.grass_rounded, size: 18),
+                            label: Text(
+                              state.tr('manage_crop_cycles'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
                         ),
                       ],

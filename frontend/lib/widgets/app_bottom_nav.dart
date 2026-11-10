@@ -28,12 +28,13 @@ class AppBottomNav extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(22.0)),
         border: Border(top: BorderSide(color: borderColor, width: 1.0)),
         boxShadow: isDark ? AppShadows.darkElevated : AppShadows.bottomBar,
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 7.0),
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -83,12 +84,14 @@ class AppBottomNav extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final selectedColor = isDark
-        ? AppColors.luminousSage
-        : AppColors.forestPine;
+        ? AppColors.nightCanopy
+        : AppColors.surfaceWhite;
     final unselectedColor = isDark
         ? AppColors.textDarkSecondary
         : AppColors.textSecondary;
-    final activeBgColor = isDark ? AppColors.deepWoodland : AppColors.mistMint;
+    final activeBgColor = isDark
+        ? AppColors.luminousSage
+        : AppColors.forestPine;
 
     return InkWell(
       onTap: () {
@@ -99,22 +102,34 @@ class AppBottomNav extends StatelessWidget {
       },
       borderRadius: BorderRadius.circular(AppRadii.pillValue),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 7.0),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 16.0 : 12.0,
+          vertical: 9.0,
+        ),
         decoration: BoxDecoration(
           color: isSelected ? activeBgColor : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadii.pillValue),
+          boxShadow: isSelected && !isDark
+              ? [
+                  BoxShadow(
+                    color: AppColors.forestPine.withValues(alpha: 0.22),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedScale(
               duration: const Duration(milliseconds: 180),
-              scale: isSelected ? 1.06 : 1,
+              scale: isSelected ? 1.05 : 1,
               child: Icon(
                 isSelected ? activeIcon : inactiveIcon,
-                size: 22,
+                size: 21,
                 color: isSelected ? selectedColor : unselectedColor,
               ),
             ),

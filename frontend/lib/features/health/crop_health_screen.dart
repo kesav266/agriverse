@@ -7,9 +7,12 @@ import 'package:provider/provider.dart';
 import '../../core/state/app_state_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/health_diagnosis.dart';
+import '../../widgets/app_button.dart';
 import '../../widgets/app_card.dart';
+import '../../widgets/design_components.dart';
 import '../../widgets/main_drawer.dart';
 
+/// Screen 8: Premium Modern AI Crop Disease Diagnosis & Treatment Screen.
 class CropHealthScreen extends StatefulWidget {
   const CropHealthScreen({super.key});
 
@@ -135,15 +138,19 @@ class _CropHealthScreenState extends State<CropHealthScreen> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppStateProvider>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.warmIvory,
+      backgroundColor: isDark ? AppColors.nightCanopy : const Color(0xFFF6F8F5),
       appBar: AppBar(title: Text(state.tr('crop_health'))),
       drawer: const MainDrawer(),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Crop Image Screening Card
           AppCard(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(20),
+            borderRadius: 24,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -153,82 +160,126 @@ class _CropHealthScreenState extends State<CropHealthScreen> {
                   decoration: InputDecoration(
                     labelText: state.tr('crop_name'),
                     hintText: state.tr('enter_crop_image_hint'),
-                    border: OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.grass_rounded, color: AppColors.forestPine),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+
+                // Image Preview Box (matching modern card)
                 Container(
                   height: 220,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceElevated,
-                    borderRadius: BorderRadius.circular(14),
+                    color: isDark ? AppColors.cardElevatedDark : const Color(0xFFF4F7F5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isDark ? AppColors.borderDark : const Color(0xFFE2EBE5),
+                      width: 1.5,
+                    ),
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: _image == null
-                      ? Text(state.tr('choose_clear_image'))
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppColors.mistMint,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.add_a_photo_outlined,
+                                size: 36,
+                                color: AppColors.forestPine,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              state.tr('choose_clear_image'),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
                       : Image.memory(
-                          // The selected image is only uploaded for inference; the API does not retain it.
                           _imageBytes!,
                           fit: BoxFit.contain,
                           errorBuilder: (_, _, _) =>
                               Text(state.tr('preview_unavailable')),
                         ),
                 ),
-                const SizedBox(height: 12),
+
+                const SizedBox(height: 16),
+
+                // Pick from Camera / Gallery Buttons
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: _busy
-                            ? null
-                            : () => _pick(ImageSource.camera),
-                        icon: const Icon(Icons.camera_alt_outlined),
+                        onPressed: _busy ? null : () => _pick(ImageSource.camera),
+                        icon: const Icon(Icons.camera_alt_rounded),
                         label: Text(state.tr('take_photo')),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: _busy
-                            ? null
-                            : () => _pick(ImageSource.gallery),
-                        icon: const Icon(Icons.photo_library_outlined),
+                        onPressed: _busy ? null : () => _pick(ImageSource.gallery),
+                        icon: const Icon(Icons.photo_library_rounded),
                         label: Text(state.tr('upload_gallery')),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                FilledButton.icon(
+
+                const SizedBox(height: 14),
+
+                // Primary Analyze Pill Button
+                AppButton(
+                  text: state.tr(_busy ? 'analyzing_image' : 'screen_image'),
+                  icon: Icons.search_rounded,
+                  isLoading: _busy,
+                  isPill: true,
+                  height: 52,
                   onPressed: _busy ? null : _analyze,
-                  icon: _busy
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.search),
-                  label: Text(
-                    state.tr(_busy ? 'analyzing_image' : 'screen_image'),
-                  ),
                 ),
               ],
             ),
           ),
+
           if (_error != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             _MessageCard(message: _error!, error: true),
           ],
+
           if (_diagnosis != null) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             _DiagnosisCard(
               diagnosis: _diagnosis!,
               language: context.read<AppStateProvider>().currentLanguage,
             ),
           ],
-          const SizedBox(height: 12),
+
+          const SizedBox(height: 14),
+
           _MessageCard(message: state.tr('diagnosis_caution')),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -241,36 +292,123 @@ class _DiagnosisCard extends StatelessWidget {
   final String language;
 
   @override
-  Widget build(BuildContext context) => AppCard(
-    padding: const EdgeInsets.all(18),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          diagnosis.detectedDisease,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '${context.read<AppStateProvider>().tr('crop_prefix')}: ${diagnosis.cropName} · ${context.read<AppStateProvider>().tr('diagnosis_result')}: ${context.read<AppStateProvider>().tr(_severityKey(diagnosis.severity))}',
-        ),
-        if (diagnosis.confidenceScore != null)
-          Text(
-            '${context.read<AppStateProvider>().tr('confidence')}: ${(diagnosis.confidenceScore! * 100).toStringAsFixed(1)}%',
+  Widget build(BuildContext context) {
+    final state = context.read<AppStateProvider>();
+    final isHealthy = diagnosis.detectedDisease.toLowerCase().contains('healthy');
+    final isHigh = diagnosis.severity.toLowerCase() == 'high';
+
+    final Color statusColor = isHealthy
+        ? AppColors.forestPine
+        : (isHigh ? AppColors.error : AppColors.warning);
+
+    return AppCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: 22,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  diagnosis.detectedDisease.replaceAll('___', ' — ').replaceAll('_', ' '),
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ),
+              FarmStatusBadge(
+                label: state.tr(_severityKey(diagnosis.severity)),
+                icon: isHealthy ? Icons.check_circle_rounded : Icons.warning_amber_rounded,
+                color: statusColor,
+              ),
+            ],
           ),
-        if (diagnosis.topPredictions.isNotEmpty) ...[
           const SizedBox(height: 8),
-          const Text('Top model predictions'),
-          for (final prediction in diagnosis.topPredictions)
-            Text(
-              '${prediction.label}: ${(prediction.confidence * 100).toStringAsFixed(1)}%',
+          Text(
+            '${state.tr('crop_prefix')}: ${diagnosis.cropName}',
+            style: const TextStyle(
+              fontSize: 13.5,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
             ),
+          ),
+          if (diagnosis.confidenceScore != null) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: diagnosis.confidenceScore!,
+                      backgroundColor: const Color(0xFFE5EDE7),
+                      color: statusColor,
+                      minHeight: 8,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${(diagnosis.confidenceScore! * 100).toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    color: statusColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (diagnosis.topPredictions.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            const Text(
+              'Top model predictions',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 4),
+            for (final prediction in diagnosis.topPredictions)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      prediction.label.replaceAll('___', ' — ').replaceAll('_', ' '),
+                      style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                    ),
+                    Text(
+                      '${(prediction.confidence * 100).toStringAsFixed(1)}%',
+                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+          const Divider(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.healing_rounded, size: 18, color: AppColors.forestPine),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  language == 'te' ? diagnosis.treatmentTe : diagnosis.treatmentEn,
+                  style: const TextStyle(fontSize: 13.5, height: 1.4),
+                ),
+              ),
+            ],
+          ),
         ],
-        const SizedBox(height: 12),
-        Text(language == 'te' ? diagnosis.treatmentTe : diagnosis.treatmentEn),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 String _severityKey(String severity) => switch (severity.toLowerCase()) {
@@ -286,11 +424,35 @@ class _MessageCard extends StatelessWidget {
   final bool error;
 
   @override
-  Widget build(BuildContext context) => AppCard(
+  Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
-    child: Text(
-      message,
-      style: TextStyle(color: error ? AppColors.error : null),
+    decoration: BoxDecoration(
+      color: error ? const Color(0xFFFFEDEA) : const Color(0xFFF0F5F2),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(
+        color: error ? const Color(0xFFFFB4AB) : const Color(0xFFD4E3D9),
+      ),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          error ? Icons.error_outline_rounded : Icons.info_outline_rounded,
+          color: error ? AppColors.error : AppColors.forestPine,
+          size: 18,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            message,
+            style: TextStyle(
+              color: error ? AppColors.error : AppColors.textPrimary,
+              fontSize: 12.5,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }
